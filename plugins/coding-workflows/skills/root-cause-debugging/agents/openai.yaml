@@ -1,0 +1,6 @@
+interface:
+  display_name: "Root Cause Debugging"
+  short_description: "Trace failures before changing code"
+  default_prompt: "Use $root-cause-debugging to reproduce this failure, trace its cause, and identify the smallest repair target."
+policy:
+  allow_implicit_invocation: true

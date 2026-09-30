@@ -1,0 +1,125 @@
+"""Shared loaders and fixture helpers for repository test modules."""
+
+from __future__ import annotations
+
+import importlib.util
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "scripts"
+SKILLS = ROOT / "plugins" / "coding-workflows" / "skills"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
+
+
+def load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Could not load {path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module  # dataclasses resolve annotations through sys.modules
+    spec.loader.exec_module(module)
+    return module
+
+
+VALIDATOR = load_module("coding_agents_validate_repository_support", SCRIPTS / "validate-repository.py")
+
+
+def load_helper(skill: str, helper: str):
+    """Import a skill helper from the canonical whole-plugin layout."""
+
+    return load_module(f"skill_helper_{skill.replace('-', '_')}_{Path(helper).stem}", SKILLS / skill / "scripts" / helper)
+
+
+def make_repo_fixture(testcase: unittest.TestCase) -> Path:
+    """Copy the repository into a temporary directory that is removed after the test."""
+
+    temporary = tempfile.TemporaryDirectory()
+    testcase.addCleanup(temporary.cleanup)
+    fixture = Path(temporary.name) / "repo"
+    shutil.copytree(ROOT, fixture, ignore=shutil.ignore_patterns(".git", ".artifacts", "__pycache__", "*.pyc"))
+    return fixture
+
+
+def temp_dir(testcase: unittest.TestCase) -> Path:
+    temporary = tempfile.TemporaryDirectory()
+    testcase.addCleanup(temporary.cleanup)
+    return Path(temporary.name)
+
+
+def symlink_or_skip(testcase: unittest.TestCase, link: Path, target: Path, *, target_is_directory: bool) -> None:
+    try:
+        link.symlink_to(target, target_is_directory=target_is_directory)
+    except (OSError, NotImplementedError) as exc:
+        testcase.skipTest(f"symlink creation is unavailable or denied: {exc}")
+
+
+def isolated_git_env(home: Path) -> dict[str, str]:
+    """Environment for test Git repositories that ignores user and system configuration."""
+
+    config = home / "gitconfig"
+    if not config.exists():
+        config.write_text("", encoding="utf-8")
+    env = dict(os.environ)
+    env.update(
+        {
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": str(config),
+            "GIT_AUTHOR_NAME": "Fixture",
+            "GIT_AUTHOR_EMAIL": "fixture@example.invalid",
+            "GIT_COMMITTER_NAME": "Fixture",
+            "GIT_COMMITTER_EMAIL": "fixture@example.invalid",
+            "GIT_TERMINAL_PROMPT": "0",
+        }
+    )
+    return env
+
+
+def git(repo: Path, *args: str, env: dict[str, str]) -> str:
+    completed = subprocess.run(
+        ["git", "-c", "commit.gpgsign=false", *args],
+        cwd=repo,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return completed.stdout.strip()
+
+
+def make_git_repo(testcase: unittest.TestCase, files: dict[str, str] | None = None) -> tuple[Path, dict[str, str]]:
+    """Create a temporary Git repository with one commit and isolated configuration."""
+
+    base = temp_dir(testcase)
+    env = isolated_git_env(base)
+    repo = base / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", env=env)
+    # Set the unborn branch directly; older Git versions ignore init.defaultBranch.
+    git(repo, "symbolic-ref", "HEAD", "refs/heads/main", env=env)
+    for relative, content in (files or {"README.md": "fixture\n"}).items():
+        path = repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    git(repo, "add", "-A", env=env)
+    git(repo, "commit", "-q", "-m", "initial", env=env)
+    return repo, env
+
+
+def run_python(script: Path, *args: str, cwd: Path | None = None, env: dict[str, str] | None = None,
+               timeout: int = 120) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(script), *args],
+        cwd=cwd,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )

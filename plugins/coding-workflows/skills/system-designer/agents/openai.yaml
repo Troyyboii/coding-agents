@@ -1,0 +1,6 @@
+interface:
+  display_name: "System Designer"
+  short_description: "Design software systems and interfaces"
+  default_prompt: "Use $system-designer to design this system and make the implementation decisions explicit."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,12 @@
+{
+  "name": "coding-workflows",
+  "description": "Evidence-first repository, research, debugging, review, verification, testing, design, browser, and writing workflows for Claude Code.",
+  "version": "1.5.0",
+  "author": {
+    "name": "Troyyboii",
+    "url": "https://github.com/Troyyboii"
+  },
+  "homepage": "https://github.com/Troyyboii/coding-agents",
+  "repository": "https://github.com/Troyyboii/coding-agents",
+  "license": "MIT"
+}

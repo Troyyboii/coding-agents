@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title>Coding Workflows icon</title>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="#2563EB"/>
+  <path d="M48 37 27 64l21 27" fill="none" stroke="#F8FAFC" stroke-linecap="round" stroke-linejoin="round" stroke-width="10"/>
+  <path d="m80 37 21 27-21 27" fill="none" stroke="#F8FAFC" stroke-linecap="round" stroke-linejoin="round" stroke-width="10"/>
+  <path d="m48 66 11 11 23-25" fill="none" stroke="#86EFAC" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"/>
+</svg>

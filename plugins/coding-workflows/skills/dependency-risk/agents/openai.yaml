@@ -1,0 +1,6 @@
+interface:
+  display_name: "Dependency Risk"
+  short_description: "Measure the risk of depending on packages"
+  default_prompt: "Use $dependency-risk to assess whether these dependencies are acceptable, with coverage for what was not checked."
+policy:
+  allow_implicit_invocation: true

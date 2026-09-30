@@ -1,0 +1,6 @@
+interface:
+  display_name: "Session Checkpoint"
+  short_description: "Save or resume a checked session save point"
+  default_prompt: "Use $session-checkpoint to save a checkpoint of this session that I can resume later."
+policy:
+  allow_implicit_invocation: false

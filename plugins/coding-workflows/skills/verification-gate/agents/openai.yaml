@@ -1,0 +1,6 @@
+interface:
+  display_name: "Verification Gate"
+  short_description: "Prove what changed before calling it done"
+  default_prompt: "Use $verification-gate to verify this completed task with evidence."
+policy:
+  allow_implicit_invocation: true

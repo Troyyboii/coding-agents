@@ -1,0 +1,6 @@
+interface:
+  display_name: "Live Research"
+  short_description: "Research current technical sources"
+  default_prompt: "Use $live-research to answer this with current authoritative sources and citations."
+policy:
+  allow_implicit_invocation: true

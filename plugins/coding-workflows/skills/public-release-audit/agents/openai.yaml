@@ -1,0 +1,6 @@
+interface:
+  display_name: "Public Release Audit"
+  short_description: "Check a repository is ready to go public"
+  default_prompt: "Use $public-release-audit to check whether this repository is ready to be made public, without changing anything."
+policy:
+  allow_implicit_invocation: true

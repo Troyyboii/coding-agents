@@ -1,0 +1,6 @@
+interface:
+  display_name: "Improved Design"
+  short_description: "Critique and improve visual product design"
+  default_prompt: "Use $improved-design to review this interface and propose the highest-value fixes."
+policy:
+  allow_implicit_invocation: true

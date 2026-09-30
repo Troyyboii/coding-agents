@@ -1,0 +1,6 @@
+interface:
+  display_name: "Test Writer"
+  short_description: "Add focused executable regression tests"
+  default_prompt: "Use $test-writer to add focused tests for this behavior and run the relevant suite."
+policy:
+  allow_implicit_invocation: true

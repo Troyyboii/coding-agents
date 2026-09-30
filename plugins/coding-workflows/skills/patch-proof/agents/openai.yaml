@@ -1,0 +1,6 @@
+interface:
+  display_name: "Patch Proof"
+  short_description: "Prove a fix against its base revision"
+  default_prompt: "Use $patch-proof to plan and, once I approve the commands, run a before-and-after proof of this fix."
+policy:
+  allow_implicit_invocation: true

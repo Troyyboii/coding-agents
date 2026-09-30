@@ -1,0 +1,7 @@
+interface:
+  display_name: "Action Mode"
+  short_description: "Action-first output that is easy to execute"
+  default_prompt: "Use $action-mode to make this response action-first and easy to execute."
+
+policy:
+  allow_implicit_invocation: true

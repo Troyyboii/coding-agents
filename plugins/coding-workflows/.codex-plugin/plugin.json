@@ -1,0 +1,31 @@
+{
+  "name": "coding-workflows",
+  "version": "1.5.0",
+  "description": "Evidence-first repository, research, debugging, review, verification, testing, design, browser, and writing workflows for Codex.",
+  "author": {
+    "name": "Troyyboii",
+    "url": "https://github.com/Troyyboii"
+  },
+  "homepage": "https://github.com/Troyyboii/coding-agents",
+  "repository": "https://github.com/Troyyboii/coding-agents",
+  "license": "MIT",
+  "keywords": ["codex", "coding", "review", "verification", "skills"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Coding Workflows",
+    "shortDescription": "Evidence-first Codex workflows",
+    "longDescription": "Reusable evidence-first workflows for repository orientation, technical reconnaissance, context gathering, root-cause debugging, diff review, completion verification, browser checks, system design, testing, product critique, and concise writing.",
+    "developerName": "Troyyboii",
+    "category": "Development",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/Troyyboii/coding-agents",
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg",
+    "defaultPrompt": [
+      "Inspect this repository and identify the safest change path.",
+      "Reproduce this failure and trace its root cause before repair.",
+      "Verify this implementation against its acceptance criteria."
+    ]
+  }
+}

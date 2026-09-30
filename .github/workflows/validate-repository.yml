@@ -1,0 +1,65 @@
+name: Validate repository
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate on ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.14"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Validate repository contracts
+        run: python scripts/validate-repository.py
+
+      - name: Check generated inventory
+        run: python scripts/generate-inventory.py --check
+
+      - name: Check Work Mode packages
+        run: python scripts/package-work-mode.py --check
+
+      - name: Check claude.ai packages
+        run: python scripts/package-claude-app.py --check
+
+      - name: Check Agent Skills and host packages
+        run: python scripts/package-agent-skills.py --check
+
+      - name: Run repository-tool tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Compile Python tooling
+        run: python -m compileall -q scripts tests
+
+      - name: Check diff whitespace
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          PULL_REQUEST_BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: python scripts/check-diff-whitespace.py

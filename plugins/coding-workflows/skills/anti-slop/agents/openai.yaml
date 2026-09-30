@@ -1,0 +1,6 @@
+interface:
+  display_name: "Anti-Slop"
+  short_description: "Edit prose without AI-shaped filler"
+  default_prompt: "Use $anti-slop to revise this prose without flattening my voice."
+policy:
+  allow_implicit_invocation: true

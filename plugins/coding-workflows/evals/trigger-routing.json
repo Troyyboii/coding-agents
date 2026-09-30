@@ -1,0 +1,1302 @@
+{
+  "version": 2,
+  "skills": [
+    {
+      "name": "context-first",
+      "cases": [
+        {
+          "id": "context-first-direct-1",
+          "kind": "direct",
+          "prompt": "Use context-first to reconcile the migration requirements scattered across these three design docs and two prior decisions, then give me the implementation plan.",
+          "expected_skill": "context-first",
+          "expected_behavior": "Assemble only the missing decision-relevant context and expose consequential conflicts."
+        },
+        {
+          "id": "context-first-indirect-1",
+          "kind": "indirect",
+          "prompt": "Build a handoff packet from these issue notes, repository rules, and test results so another engineer can continue.",
+          "expected_skill": "context-first",
+          "expected_behavior": "Compress the scattered sources into a decision-ready handoff without inventing missing state."
+        },
+        {
+          "id": "context-first-indirect-2",
+          "kind": "indirect",
+          "prompt": "Before recommending a vendor, resolve the conflicting budget, security, and rollout constraints in the supplied material.",
+          "expected_skill": "context-first",
+          "expected_behavior": "Reconcile authoritative constraints and label any unresolved choice."
+        },
+        {
+          "id": "context-first-negative-1",
+          "kind": "negative",
+          "prompt": "Explain what a Git branch is in two sentences.",
+          "expected_skill": null,
+          "expected_behavior": "Answer directly without context-gathering ceremony."
+        },
+        {
+          "id": "context-first-negative-2",
+          "kind": "negative",
+          "prompt": "Map the current structure and Git state of this repository without changing anything.",
+          "expected_skill": null,
+          "expected_behavior": "Use repository orientation rather than context-first."
+        },
+        {
+          "id": "context-first-negative-3",
+          "kind": "negative",
+          "prompt": "Rewrite this paragraph so it sounds less corporate.",
+          "expected_skill": null,
+          "expected_behavior": "Use prose editing rather than context-first."
+        },
+        {
+          "id": "context-first-edge-1",
+          "kind": "edge",
+          "prompt": "Here is a complete self-contained specification. Implement exactly these three changes.",
+          "expected_skill": null,
+          "expected_behavior": "Do not trigger merely because the task is complex; proceed from the complete specification."
+        },
+        {
+          "id": "context-first-checkpoint-boundary-1",
+          "kind": "edge",
+          "prompt": "Resume from the checkpoint file I saved yesterday and carry on.",
+          "expected_skill": "session-checkpoint",
+          "expected_behavior": "Route an identified checkpoint to the checkpoint workflow so freshness is compared before acting."
+        }
+      ]
+    },
+    {
+      "name": "anti-slop",
+      "cases": [
+        {
+          "id": "anti-slop-direct-1",
+          "kind": "direct",
+          "prompt": "Use anti-slop to rewrite this announcement so it stops sounding AI-generated but keeps my dry humour.",
+          "expected_skill": "anti-slop",
+          "expected_behavior": "Improve the prose without flattening the voice or inventing facts."
+        },
+        {
+          "id": "anti-slop-indirect-1",
+          "kind": "indirect",
+          "prompt": "Audit this essay for padded structure and generic assistant phrasing without flattening the voice.",
+          "expected_skill": "anti-slop",
+          "expected_behavior": "Identify and remove AI-shaped filler while preserving meaning and tone."
+        },
+        {
+          "id": "anti-slop-indirect-2",
+          "kind": "indirect",
+          "prompt": "Draft a concise customer update from these confirmed facts in a direct, human tone.",
+          "expected_skill": "anti-slop",
+          "expected_behavior": "Produce concise natural prose using only supplied facts."
+        },
+        {
+          "id": "anti-slop-negative-1",
+          "kind": "negative",
+          "prompt": "Research whether these statistics are current and cite the sources.",
+          "expected_skill": null,
+          "expected_behavior": "Use research tools rather than a prose-only editing workflow."
+        },
+        {
+          "id": "anti-slop-negative-2",
+          "kind": "negative",
+          "prompt": "Translate this contract literally into Croatian.",
+          "expected_skill": null,
+          "expected_behavior": "Perform literal translation without stylistic rewriting."
+        },
+        {
+          "id": "anti-slop-negative-3",
+          "kind": "negative",
+          "prompt": "Debug this TypeScript function.",
+          "expected_skill": null,
+          "expected_behavior": "Use normal coding diagnostics rather than prose editing."
+        },
+        {
+          "id": "anti-slop-edge-1",
+          "kind": "edge",
+          "prompt": "First verify the current release date from an official source, then rewrite this launch note using the verified date.",
+          "expected_skill": "anti-slop",
+          "expected_behavior": "Let the outer task verify the fact separately, then edit the prose without browsing during the editing pass."
+        }
+      ]
+    },
+    {
+      "name": "system-designer",
+      "cases": [
+        {
+          "id": "system-designer-direct-1",
+          "kind": "direct",
+          "prompt": "Use system-designer to define the component boundaries and data flow for this new event-processing service.",
+          "expected_skill": "system-designer",
+          "expected_behavior": "Produce a decision-complete design grounded in existing constraints."
+        },
+        {
+          "id": "system-designer-indirect-1",
+          "kind": "indirect",
+          "prompt": "Compare two viable designs for splitting this monolith and recommend one implementation path.",
+          "expected_skill": "system-designer",
+          "expected_behavior": "Compare real trade-offs and select one implementation path."
+        },
+        {
+          "id": "system-designer-indirect-2",
+          "kind": "indirect",
+          "prompt": "Review this proposed integration design for trust boundaries, failure handling, and migration risk.",
+          "expected_skill": "system-designer",
+          "expected_behavior": "Evaluate interfaces, ownership, failure handling, and migration risk."
+        },
+        {
+          "id": "system-designer-negative-1",
+          "kind": "negative",
+          "prompt": "Map the current repository structure without proposing changes.",
+          "expected_skill": null,
+          "expected_behavior": "Use repository orientation rather than system design."
+        },
+        {
+          "id": "system-designer-negative-2",
+          "kind": "negative",
+          "prompt": "Implement this already-approved three-line parser fix.",
+          "expected_skill": null,
+          "expected_behavior": "Implement the scoped fix without reopening system design."
+        },
+        {
+          "id": "system-designer-negative-3",
+          "kind": "negative",
+          "prompt": "Review only the supplied patch for concrete defects.",
+          "expected_skill": null,
+          "expected_behavior": "Use diff review rather than system design."
+        },
+        {
+          "id": "system-designer-edge-1",
+          "kind": "edge",
+          "prompt": "Design the system, but the product has not decided whether data may leave the device.",
+          "expected_skill": "system-designer",
+          "expected_behavior": "Expose the unresolved trust-boundary decision as blocking rather than silently choosing a deployment model."
+        }
+      ]
+    },
+    {
+      "name": "test-writer",
+      "cases": [
+        {
+          "id": "test-writer-direct-1",
+          "kind": "direct",
+          "prompt": "Use test-writer to add a regression test that reproduces this confirmed pagination bug.",
+          "expected_skill": "test-writer",
+          "expected_behavior": "Add the smallest executable regression test and run its containing suite."
+        },
+        {
+          "id": "test-writer-indirect-1",
+          "kind": "indirect",
+          "prompt": "Write contract tests for this plugin manifest and generated inventory.",
+          "expected_skill": "test-writer",
+          "expected_behavior": "Test the public contract and source-of-truth relationship."
+        },
+        {
+          "id": "test-writer-indirect-2",
+          "kind": "indirect",
+          "prompt": "Improve coverage for the parser's malformed-input and boundary cases.",
+          "expected_skill": "test-writer",
+          "expected_behavior": "Add deterministic malformed-input and boundary tests without duplicating implementation details."
+        },
+        {
+          "id": "test-writer-negative-1",
+          "kind": "negative",
+          "prompt": "Fix this bug; I did not ask for tests.",
+          "expected_skill": null,
+          "expected_behavior": "Do not expand an implementation-only request into a test-writing workflow."
+        },
+        {
+          "id": "test-writer-negative-2",
+          "kind": "negative",
+          "prompt": "Audit the whole repository for quality problems.",
+          "expected_skill": null,
+          "expected_behavior": "Do not trigger for a broad quality audit."
+        },
+        {
+          "id": "test-writer-negative-3",
+          "kind": "negative",
+          "prompt": "Tell me whether the existing test suite passed yesterday.",
+          "expected_skill": null,
+          "expected_behavior": "Do not claim or recreate historical test evidence."
+        },
+        {
+          "id": "test-writer-edge-1",
+          "kind": "edge",
+          "prompt": "Add tests for this feature, but its expected error behavior is not specified anywhere.",
+          "expected_skill": "test-writer",
+          "expected_behavior": "Inspect authoritative interfaces and ask only if the missing behavior is a product decision that cannot be derived."
+        },
+        {
+          "id": "test-writer-scenario-led-1",
+          "kind": "indirect",
+          "prompt": "Before generating tests for this payment retry flow, write down setup, action, expected result, and the one failure case the test must prove.",
+          "expected_skill": "test-writer",
+          "expected_behavior": "Create a compact scenario ledger, then select the narrowest existing test surface rather than blindly generating selectors."
+        }
+      ]
+    },
+    {
+      "name": "verification-gate",
+      "cases": [
+        {
+          "id": "verification-gate-direct-1",
+          "kind": "direct",
+          "prompt": "Use verification-gate to verify every acceptance criterion before I hand this finished implementation off.",
+          "expected_skill": "verification-gate",
+          "expected_behavior": "Map each acceptance criterion to direct evidence and an explicit result."
+        },
+        {
+          "id": "verification-gate-indirect-1",
+          "kind": "indirect",
+          "prompt": "Prove this repository change is complete before commit using the available test, diff, and generated-file evidence.",
+          "expected_skill": "verification-gate",
+          "expected_behavior": "Synthesize current evidence without repairing failures or claiming unavailable checks."
+        },
+        {
+          "id": "verification-gate-indirect-2",
+          "kind": "indirect",
+          "prompt": "Synthesize the test results, browser proof, and remote state into a final completion verdict.",
+          "expected_skill": "verification-gate",
+          "expected_behavior": "Return a bounded verdict supported by the supplied evidence."
+        },
+        {
+          "id": "verification-gate-negative-1",
+          "kind": "negative",
+          "prompt": "Review this patch for bugs and regressions.",
+          "expected_skill": null,
+          "expected_behavior": "Use diff review rather than completion verification."
+        },
+        {
+          "id": "verification-gate-negative-2",
+          "kind": "negative",
+          "prompt": "Test only the checkout flow in the browser.",
+          "expected_skill": null,
+          "expected_behavior": "Use focused browser proof rather than broad completion verification."
+        },
+        {
+          "id": "verification-gate-negative-3",
+          "kind": "negative",
+          "prompt": "Give me a read-only orientation of this repository.",
+          "expected_skill": null,
+          "expected_behavior": "Use repository orientation rather than completion verification."
+        },
+        {
+          "id": "verification-gate-edge-1",
+          "kind": "edge",
+          "prompt": "Verify this task even though two required tests have not been run.",
+          "expected_skill": "verification-gate",
+          "expected_behavior": "Mark those checks not checked and return a partial or incomplete verdict rather than implementing or claiming success."
+        },
+        {
+          "id": "verification-gate-fresh-evidence-1",
+          "kind": "indirect",
+          "prompt": "The test passed before I changed the configuration. Can I use that result to verify the final behavior?",
+          "expected_skill": "verification-gate",
+          "expected_behavior": "Classify the stale command result as insufficient for the changed artifact and require fresh proportionate evidence."
+        },
+        {
+          "id": "verification-gate-patch-boundary-1",
+          "kind": "edge",
+          "prompt": "Prove this vulnerability is fixed by running the exploit against the commit before the fix and the commit after it.",
+          "expected_skill": "patch-proof",
+          "expected_behavior": "Route paired before-and-after execution evidence to patch proof; verification composes it later."
+        },
+        {
+          "id": "verification-gate-release-boundary-1",
+          "kind": "edge",
+          "prompt": "Audit whether this repository is ready to be made public before we flip visibility.",
+          "expected_skill": "public-release-audit",
+          "expected_behavior": "Route publication readiness to the release audit; verification judges completed work."
+        }
+      ]
+    },
+    {
+      "name": "browser-proof",
+      "cases": [
+        {
+          "id": "browser-proof-direct-1",
+          "kind": "direct",
+          "prompt": "Use browser-proof to open the live preview and verify that submitting the contact form shows the success state.",
+          "expected_skill": "browser-proof",
+          "expected_behavior": "Exercise the narrow browser path and record direct evidence."
+        },
+        {
+          "id": "browser-proof-indirect-1",
+          "kind": "indirect",
+          "prompt": "Reproduce this visual bug in the browser and record the exact rendered result.",
+          "expected_skill": "browser-proof",
+          "expected_behavior": "Reproduce the browser-visible behavior and limit claims to what was observed."
+        },
+        {
+          "id": "browser-proof-indirect-2",
+          "kind": "indirect",
+          "prompt": "Check the authenticated settings flow in the browser using the test account I authorized.",
+          "expected_skill": "browser-proof",
+          "expected_behavior": "Use only the authorized session and verify the specified flow."
+        },
+        {
+          "id": "browser-proof-negative-1",
+          "kind": "negative",
+          "prompt": "Review this React diff without running the application.",
+          "expected_skill": null,
+          "expected_behavior": "Use source or diff review rather than browser proof."
+        },
+        {
+          "id": "browser-proof-negative-2",
+          "kind": "negative",
+          "prompt": "Audit the entire release and decide whether it is complete.",
+          "expected_skill": null,
+          "expected_behavior": "Use completion verification rather than a narrow browser check."
+        },
+        {
+          "id": "browser-proof-negative-3",
+          "kind": "negative",
+          "prompt": "Critique the visual hierarchy in this supplied screenshot.",
+          "expected_skill": null,
+          "expected_behavior": "Use design critique rather than browser proof."
+        },
+        {
+          "id": "browser-proof-edge-1",
+          "kind": "edge",
+          "prompt": "Verify the account page, but no authenticated browser session or test credentials are available.",
+          "expected_skill": "browser-proof",
+          "expected_behavior": "Report the protected path blocked, test only relevant public state, and do not invent or request exposed credentials."
+        },
+        {
+          "id": "browser-proof-fresh-state-1",
+          "kind": "indirect",
+          "prompt": "Prove the checkout success state at desktop and mobile widths, taking new evidence after submission rather than relying on the initial page screenshot.",
+          "expected_skill": "browser-proof",
+          "expected_behavior": "Exercise the named viewports and capture fresh post-action observations while limiting claims to the tested flow."
+        }
+      ]
+    },
+    {
+      "name": "repo-xray",
+      "cases": [
+        {
+          "id": "repo-xray-direct-1",
+          "kind": "direct",
+          "prompt": "Use repo-xray to inspect this local worktree read-only and report its branch, status, remotes, structure, and likely change path.",
+          "expected_skill": "repo-xray",
+          "expected_behavior": "Map only observed local repository state and remain read-only."
+        },
+        {
+          "id": "repo-xray-indirect-1",
+          "kind": "indirect",
+          "prompt": "Map the contents and selected ref of this GitHub repository; I do not have the local clone available.",
+          "expected_skill": "repo-xray",
+          "expected_behavior": "Inspect remote evidence and mark local worktree state unavailable."
+        },
+        {
+          "id": "repo-xray-indirect-2",
+          "kind": "indirect",
+          "prompt": "Orient me in this uploaded source archive and identify its entry points and tests.",
+          "expected_skill": "repo-xray",
+          "expected_behavior": "Map the supplied snapshot and avoid inventing Git state."
+        },
+        {
+          "id": "repo-xray-negative-1",
+          "kind": "negative",
+          "prompt": "Review this pull request diff for defects.",
+          "expected_skill": null,
+          "expected_behavior": "Use diff review rather than repository orientation."
+        },
+        {
+          "id": "repo-xray-negative-2",
+          "kind": "negative",
+          "prompt": "Prove the completed migration satisfies every acceptance criterion.",
+          "expected_skill": null,
+          "expected_behavior": "Use completion verification rather than repository orientation."
+        },
+        {
+          "id": "repo-xray-negative-3",
+          "kind": "negative",
+          "prompt": "Fix the failing parser and commit the change.",
+          "expected_skill": null,
+          "expected_behavior": "Use implementation workflow and explicit publication authorization rather than repo-xray."
+        },
+        {
+          "id": "repo-xray-edge-1",
+          "kind": "edge",
+          "prompt": "Inspect this remote GitHub repository and confirm that my local clone is clean and synchronized.",
+          "expected_skill": "repo-xray",
+          "expected_behavior": "Report the remote ref and contents, but mark local cleanliness and synchronization unavailable."
+        },
+        {
+          "id": "repo-xray-path-trace-1",
+          "kind": "indirect",
+          "prompt": "Before changing this authentication endpoint, trace its public contract through direct callers, configuration boundaries, and the relevant tests without editing anything.",
+          "expected_skill": "repo-xray",
+          "expected_behavior": "Produce a bounded observed path trace and name uninspected or missing enforcement rather than attempting the change."
+        },
+        {
+          "id": "repo-xray-instructions-boundary-1",
+          "kind": "edge",
+          "prompt": "Update our AGENTS.md so its build and test commands match what CI actually runs.",
+          "expected_skill": "repo-instructions",
+          "expected_behavior": "Route writing instruction files to instruction authoring rather than read-only orientation."
+        }
+      ]
+    },
+    {
+      "name": "improved-design",
+      "cases": [
+        {
+          "id": "improved-design-direct-1",
+          "kind": "direct",
+          "prompt": "Use improved-design to critique this dashboard screenshot and rank the five changes that would improve comprehension most.",
+          "expected_skill": "improved-design",
+          "expected_behavior": "Return a prioritized evidence-based critique with concrete recommendations."
+        },
+        {
+          "id": "improved-design-indirect-1",
+          "kind": "indirect",
+          "prompt": "Why does this checkout flow feel confusing, and which interaction fixes should come first?",
+          "expected_skill": "improved-design",
+          "expected_behavior": "Explain the interaction problems and rank fixes by user impact."
+        },
+        {
+          "id": "improved-design-indirect-2",
+          "kind": "indirect",
+          "prompt": "Review this landing-page visual direction and tell me what to preserve as well as what to change.",
+          "expected_skill": "improved-design",
+          "expected_behavior": "Identify strengths and highest-value changes without decorative churn."
+        },
+        {
+          "id": "improved-design-negative-1",
+          "kind": "negative",
+          "prompt": "Implement this approved redesign in React.",
+          "expected_skill": null,
+          "expected_behavior": "Implement the approved design rather than reopening critique."
+        },
+        {
+          "id": "improved-design-negative-2",
+          "kind": "negative",
+          "prompt": "Review this configuration diff for release risk.",
+          "expected_skill": null,
+          "expected_behavior": "Use diff review rather than product design critique."
+        },
+        {
+          "id": "improved-design-negative-3",
+          "kind": "negative",
+          "prompt": "Use a browser to prove the live form works.",
+          "expected_skill": null,
+          "expected_behavior": "Use browser proof rather than design critique."
+        },
+        {
+          "id": "improved-design-edge-1",
+          "kind": "edge",
+          "prompt": "Critique this screen and then redesign it in code.",
+          "expected_skill": "improved-design",
+          "expected_behavior": "Treat critique and implementation as separate scopes and do not silently edit without host write authorization."
+        }
+      ]
+    },
+    {
+      "name": "diff-judge",
+      "cases": [
+        {
+          "id": "diff-judge-direct-1",
+          "kind": "direct",
+          "prompt": "Use diff-judge to review this working-tree diff for correctness, scope, and regression risk.",
+          "expected_skill": "diff-judge",
+          "expected_behavior": "Review the complete identified diff and report findings first by severity."
+        },
+        {
+          "id": "diff-judge-indirect-1",
+          "kind": "indirect",
+          "prompt": "Inspect commit 8f31c2a and give me findings before I ship it.",
+          "expected_skill": "diff-judge",
+          "expected_behavior": "Inspect the actual commit diff and prioritize concrete defects."
+        },
+        {
+          "id": "diff-judge-indirect-2",
+          "kind": "indirect",
+          "prompt": "Review pull request 42's actual file diff for blockers and important issues.",
+          "expected_skill": "diff-judge",
+          "expected_behavior": "Review the complete pull request diff without broad repository ceremony."
+        },
+        {
+          "id": "diff-judge-negative-1",
+          "kind": "negative",
+          "prompt": "Map this repository and explain where authentication lives.",
+          "expected_skill": null,
+          "expected_behavior": "Use repository orientation rather than diff review."
+        },
+        {
+          "id": "diff-judge-negative-2",
+          "kind": "negative",
+          "prompt": "Audit the whole codebase for general quality; there is no proposed change.",
+          "expected_skill": null,
+          "expected_behavior": "Do not perform a ceremonial diff review without a diff artifact."
+        },
+        {
+          "id": "diff-judge-negative-3",
+          "kind": "negative",
+          "prompt": "Implement the parser fix described in this issue.",
+          "expected_skill": null,
+          "expected_behavior": "Use implementation workflow rather than diff review."
+        },
+        {
+          "id": "diff-judge-edge-1",
+          "kind": "edge",
+          "prompt": "Review my changes, but no patch, commit, pull request, or repository access is available.",
+          "expected_skill": "diff-judge",
+          "expected_behavior": "Report that the required diff artifact is unavailable instead of inventing a review."
+        },
+        {
+          "id": "diff-judge-risk-lenses-1",
+          "kind": "indirect",
+          "prompt": "Review this migration diff with particular attention to data compatibility, rollback boundaries, and the tests that could prove the risk is contained.",
+          "expected_skill": "diff-judge",
+          "expected_behavior": "Select data and compatibility review lenses from the changed surface and tie findings to the actual diff."
+        },
+        {
+          "id": "diff-judge-spec-boundary-1",
+          "kind": "edge",
+          "prompt": "Check whether this pull request implements every requirement in the attached protocol specification.",
+          "expected_skill": "spec-trace",
+          "expected_behavior": "Route per-requirement conformance of the patch to specification tracing."
+        }
+      ]
+    },
+    {
+      "name": "root-cause-debugging",
+      "cases": [
+        {
+          "id": "root-cause-debugging-direct-1",
+          "kind": "direct",
+          "prompt": "Use root-cause-debugging to reproduce this intermittent test failure and trace the bad state before changing code.",
+          "expected_skill": "root-cause-debugging",
+          "expected_behavior": "Capture the exact failure, reproduce or instrument it, and test one cause hypothesis before proposing repair."
+        },
+        {
+          "id": "root-cause-debugging-indirect-1",
+          "kind": "indirect",
+          "prompt": "The Windows build fails only in CI. Determine why from the logs, recent changes, and environment boundaries before fixing anything.",
+          "expected_skill": "root-cause-debugging",
+          "expected_behavior": "Localize the failing boundary and distinguish confirmed cause from environmental correlation."
+        },
+        {
+          "id": "root-cause-debugging-indirect-2",
+          "kind": "indirect",
+          "prompt": "Requests became slow after this release. Reproduce the regression and test the smallest falsifiable explanation.",
+          "expected_skill": "root-cause-debugging",
+          "expected_behavior": "Gather timing evidence, compare relevant changes, and test one variable at a time."
+        },
+        {
+          "id": "root-cause-debugging-negative-1",
+          "kind": "negative",
+          "prompt": "The null dereference is already traced to this missing guard. Implement the authorized one-line fix.",
+          "expected_skill": null,
+          "expected_behavior": "Proceed with the known-cause implementation without reopening diagnosis."
+        },
+        {
+          "id": "root-cause-debugging-negative-2",
+          "kind": "negative",
+          "prompt": "Review this supplied patch for defects and regression risk.",
+          "expected_skill": null,
+          "expected_behavior": "Use diff review rather than root-cause diagnosis."
+        },
+        {
+          "id": "root-cause-debugging-negative-3",
+          "kind": "negative",
+          "prompt": "Add a regression test for this confirmed parser bug; the expected behavior and cause are already documented.",
+          "expected_skill": null,
+          "expected_behavior": "Use test-writer for the executable regression check without repeating diagnosis."
+        },
+        {
+          "id": "root-cause-debugging-edge-1",
+          "kind": "edge",
+          "prompt": "Diagnose this production error, but do not change files, configuration, data, deployment state, commits, or remotes.",
+          "expected_skill": "root-cause-debugging",
+          "expected_behavior": "Remain read-only, gather safe evidence, and hand off the smallest repair target without implementing, committing, or pushing."
+        },
+        {
+          "id": "root-cause-debugging-regression-history-1",
+          "kind": "indirect",
+          "prompt": "This failure began after a release. Compare targeted history and a known-good path to test one causal hypothesis, but do not switch branches or run bisect.",
+          "expected_skill": "root-cause-debugging",
+          "expected_behavior": "Use read-only history as a discriminator, record the hypothesis and probe, and avoid worktree-changing regression methods."
+        }
+      ]
+    },
+    {
+      "name": "live-research",
+      "cases": [
+        {
+          "id": "live-research-direct-1",
+          "kind": "direct",
+          "prompt": "Use live-research to answer this API question with current authoritative documentation and citations.",
+          "expected_skill": "live-research",
+          "expected_behavior": "Route the question to current source-backed research and state the sources used."
+        },
+        {
+          "id": "live-research-indirect-1",
+          "kind": "indirect",
+          "prompt": "What is the current configuration for this framework version? Check the version-specific docs before answering.",
+          "expected_skill": "live-research",
+          "expected_behavior": "Prefer current library documentation over model memory or generic examples."
+        },
+        {
+          "id": "live-research-indirect-2",
+          "kind": "indirect",
+          "prompt": "Explain the latest OpenAI API behavior and link the official documentation that supports it.",
+          "expected_skill": "live-research",
+          "expected_behavior": "Use official OpenAI documentation and distinguish observed facts from inference."
+        },
+        {
+          "id": "live-research-negative-1",
+          "kind": "negative",
+          "prompt": "Implement this local function using the repository's already inspected conventions.",
+          "expected_skill": null,
+          "expected_behavior": "Use the implementation workflow when freshness or external sources are not required."
+        },
+        {
+          "id": "live-research-negative-2",
+          "kind": "negative",
+          "prompt": "Review this supplied diff for correctness and regression risk.",
+          "expected_skill": null,
+          "expected_behavior": "Use diff review rather than live research."
+        },
+        {
+          "id": "live-research-negative-3",
+          "kind": "negative",
+          "prompt": "Run the repository tests and prove the completed change meets its acceptance criteria.",
+          "expected_skill": null,
+          "expected_behavior": "Use verification-gate rather than a documentation research workflow."
+        },
+        {
+          "id": "live-research-edge-1",
+          "kind": "edge",
+          "prompt": "Research this current library behavior, but Context7 is unavailable and no authenticated external integration is present.",
+          "expected_skill": "live-research",
+          "expected_behavior": "Use an authoritative fallback if available, report the missing integration, and do not claim live verification."
+        },
+        {
+          "id": "live-research-ecosystem-ledger-1",
+          "kind": "indirect",
+          "prompt": "Research competing agent-skill workflows across GitHub. Inspect their actual skill and evaluator files, record licenses and overlap, then stop when new credible findings become repetitive.",
+          "expected_skill": "live-research",
+          "expected_behavior": "Produce a source-file-level candidate ledger with original mechanism summaries and an explicit saturation stop."
+        },
+        {
+          "id": "live-research-dep-boundary-1",
+          "kind": "edge",
+          "prompt": "Is package X safe to use in our service?",
+          "expected_skill": "dependency-risk",
+          "expected_behavior": "Route the adoption decision to dependency risk; research supplies facts, not the decision."
+        }
+      ]
+    },
+    {
+      "name": "action-mode",
+      "cases": [
+        {
+          "id": "action-mode-direct-1",
+          "kind": "direct",
+          "prompt": "Use action-mode for this response.",
+          "expected_skill": "action-mode",
+          "expected_behavior": "Lead with the immediately executable action and keep the response action-first."
+        },
+        {
+          "id": "action-mode-indirect-1",
+          "kind": "indirect",
+          "prompt": "Tell me exactly what to do next to finish this task, with no unnecessary preamble.",
+          "expected_skill": "action-mode",
+          "expected_behavior": "Make the first move obvious, concrete, and bounded."
+        },
+        {
+          "id": "action-mode-indirect-2",
+          "kind": "indirect",
+          "prompt": "Give me a short multi-step plan that makes progress and state visible.",
+          "expected_skill": "action-mode",
+          "expected_behavior": "Number the bounded steps and show the current state or next checkpoint."
+        },
+        {
+          "id": "action-mode-negative-1",
+          "kind": "negative",
+          "prompt": "Explain the history and tradeoffs behind this architecture in detail.",
+          "expected_skill": null,
+          "expected_behavior": "Explain fully rather than forcing an action-first response shape."
+        },
+        {
+          "id": "action-mode-negative-2",
+          "kind": "negative",
+          "prompt": "Review this supplied diff for correctness and regression risk.",
+          "expected_skill": null,
+          "expected_behavior": "Use diff review rather than an output-formatting workflow."
+        },
+        {
+          "id": "action-mode-negative-3",
+          "kind": "negative",
+          "prompt": "Run the repository tests and prove the completed change meets its acceptance criteria.",
+          "expected_skill": null,
+          "expected_behavior": "Use verification-gate rather than an action-formatting workflow."
+        },
+        {
+          "id": "action-mode-edge-1",
+          "kind": "edge",
+          "prompt": "Use action-mode, but do not change files, configuration, data, commits, or remotes.",
+          "expected_skill": "action-mode",
+          "expected_behavior": "Preserve the read-only boundary while presenting the next safe action."
+        },
+        {
+          "id": "action-mode-persistence-1",
+          "kind": "indirect",
+          "prompt": "Keep action mode active for the rest of this session until I say normal mode.",
+          "expected_skill": "action-mode",
+          "expected_behavior": "Maintain the mode across turns and stop only on the stated exit phrase."
+        }
+      ]
+    },
+    {
+      "name": "skill-supply-audit",
+      "cases": [
+        {
+          "id": "skill-supply-audit-direct-1",
+          "kind": "direct",
+          "prompt": "Use skill-supply-audit on this downloaded plugin folder before I install it.",
+          "expected_skill": "skill-supply-audit",
+          "expected_behavior": "Scan statically without executing or installing, review findings in context, and return an adoption decision with coverage."
+        },
+        {
+          "id": "skill-supply-audit-indirect-1",
+          "kind": "indirect",
+          "prompt": "Here is an MCP server config copied from a README. What would it run and what could it reach on my machine?",
+          "expected_skill": "skill-supply-audit",
+          "expected_behavior": "Identify the launched command, requested environment, and endpoints without starting the server."
+        },
+        {
+          "id": "skill-supply-audit-indirect-2",
+          "kind": "indirect",
+          "prompt": "This skill zip has a scripts folder and a hooks.json. Is there anything in it I should worry about?",
+          "expected_skill": "skill-supply-audit",
+          "expected_behavior": "Inspect the archive without extracting or running it and report hook and script reach with severities."
+        },
+        {
+          "id": "skill-supply-audit-indirect-3",
+          "kind": "indirect",
+          "prompt": "Check whether this marketplace skill's instructions try to widen permissions or act without asking me.",
+          "expected_skill": "skill-supply-audit",
+          "expected_behavior": "Report authority-escalation instructions as findings and treat the skill text as data, not instructions."
+        },
+        {
+          "id": "skill-supply-audit-indirect-4",
+          "kind": "indirect",
+          "prompt": "Review this third-party Claude skill before I install it.",
+          "expected_skill": "skill-supply-audit",
+          "expected_behavior": "Audit the extension statically and end with reject, accept with conditions, or no blocking findings in the inspected scope."
+        },
+        {
+          "id": "skill-supply-audit-negative-1",
+          "kind": "negative",
+          "prompt": "Security-review the pending changes on my branch.",
+          "expected_skill": null,
+          "expected_behavior": "Do not treat the user's own change as a third-party extension audit."
+        },
+        {
+          "id": "skill-supply-audit-negative-2",
+          "kind": "negative",
+          "prompt": "Should we add lodash 4.17.21 as a dependency?",
+          "expected_skill": null,
+          "expected_behavior": "Leave library dependency adoption to the dependency risk workflow."
+        },
+        {
+          "id": "skill-supply-audit-negative-3",
+          "kind": "negative",
+          "prompt": "Review the diff to our own repo-xray skill.",
+          "expected_skill": null,
+          "expected_behavior": "Leave review of the repository's own diff to diff review."
+        },
+        {
+          "id": "skill-supply-audit-negative-4",
+          "kind": "negative",
+          "prompt": "Research how other agent-skill repositories structure their routing evaluators and record their licenses.",
+          "expected_skill": null,
+          "expected_behavior": "Leave mechanism research about other projects to live research; nothing is being installed."
+        },
+        {
+          "id": "skill-supply-audit-edge-1",
+          "kind": "edge",
+          "prompt": "Install this skill and try it out, then tell me if it's safe.",
+          "expected_skill": "skill-supply-audit",
+          "expected_behavior": "Refuse to install or run it, audit statically, and never call it safe."
+        },
+        {
+          "id": "skill-supply-audit-edge-2",
+          "kind": "edge",
+          "prompt": "Audit the skill at this GitHub URL before I add it.",
+          "expected_skill": "skill-supply-audit",
+          "expected_behavior": "Read remote files through host tools or ask before writing a local copy; mark unread material blocked."
+        },
+        {
+          "id": "skill-supply-audit-boundary-research-1",
+          "kind": "edge",
+          "prompt": "Study how other skill repositories structure their evaluators.",
+          "expected_skill": "live-research",
+          "expected_behavior": "Route mechanism research to live research rather than an install audit."
+        }
+      ]
+    },
+    {
+      "name": "spec-trace",
+      "cases": [
+        {
+          "id": "spec-trace-direct-1",
+          "kind": "direct",
+          "prompt": "Use spec-trace to map every MUST in section 4 of this RFC to the parser code and its tests.",
+          "expected_skill": "spec-trace",
+          "expected_behavior": "Extract each requirement with a citation, write absence criteria before searching, and give a verdict per requirement."
+        },
+        {
+          "id": "spec-trace-indirect-1",
+          "kind": "indirect",
+          "prompt": "Review this patch against the specification.",
+          "expected_skill": "spec-trace",
+          "expected_behavior": "Trace the requirements the patch touches, requirement by requirement, rather than hunting for general defects."
+        },
+        {
+          "id": "spec-trace-indirect-2",
+          "kind": "indirect",
+          "prompt": "Which requirements in the attached PRD are not enforced anywhere in the billing service?",
+          "expected_skill": "spec-trace",
+          "expected_behavior": "Separate implementation evidence from enforcement evidence and record searches for missing requirements."
+        },
+        {
+          "id": "spec-trace-indirect-3",
+          "kind": "indirect",
+          "prompt": "What does our API actually do that the OpenAPI document does not describe?",
+          "expected_skill": "spec-trace",
+          "expected_behavior": "Run the reverse pass and classify undocumented behavior as extension, divergent, or internal."
+        },
+        {
+          "id": "spec-trace-negative-1",
+          "kind": "negative",
+          "prompt": "Write the specification for this new export feature.",
+          "expected_skill": null,
+          "expected_behavior": "Do not trace conformance when no specification exists yet."
+        },
+        {
+          "id": "spec-trace-negative-2",
+          "kind": "negative",
+          "prompt": "Verify my implementation meets the three acceptance criteria I listed before I hand it off.",
+          "expected_skill": null,
+          "expected_behavior": "Leave completion verdicts on the user's own acceptance criteria to completion verification."
+        },
+        {
+          "id": "spec-trace-negative-3",
+          "kind": "negative",
+          "prompt": "These two design documents disagree about retry limits; reconcile them before we plan.",
+          "expected_skill": null,
+          "expected_behavior": "Leave reconciliation of conflicting sources to context gathering."
+        },
+        {
+          "id": "spec-trace-edge-1",
+          "kind": "edge",
+          "prompt": "Trace the spec, but I can't tell you which of these two versions is authoritative.",
+          "expected_skill": "spec-trace",
+          "expected_behavior": "Stop for the authority decision instead of guessing which version governs."
+        },
+        {
+          "id": "spec-trace-boundary-diff-1",
+          "kind": "edge",
+          "prompt": "Review this patch for bugs; the spec is attached for context.",
+          "expected_skill": "diff-judge",
+          "expected_behavior": "Route defect review of the diff to diff review; the specification is background only."
+        }
+      ]
+    },
+    {
+      "name": "repo-instructions",
+      "cases": [
+        {
+          "id": "repo-instructions-direct-1",
+          "kind": "direct",
+          "prompt": "Use repo-instructions to create an AGENTS.md for this repository.",
+          "expected_skill": "repo-instructions",
+          "expected_behavior": "Derive every command and path from inspected files and write the file only because a file change was requested."
+        },
+        {
+          "id": "repo-instructions-indirect-1",
+          "kind": "indirect",
+          "prompt": "Our CLAUDE.md and AGENTS.md give different test commands. Fix them so they agree.",
+          "expected_skill": "repo-instructions",
+          "expected_behavior": "Resolve the contradiction against CI and manifests and keep the host file a thin pointer."
+        },
+        {
+          "id": "repo-instructions-indirect-2",
+          "kind": "indirect",
+          "prompt": "Check whether the commands and paths in our agent instruction files still exist.",
+          "expected_skill": "repo-instructions",
+          "expected_behavior": "Check references without running any command and report failed ones with file and line."
+        },
+        {
+          "id": "repo-instructions-indirect-3",
+          "kind": "indirect",
+          "prompt": "Create or update AGENTS.md for this repo.",
+          "expected_skill": "repo-instructions",
+          "expected_behavior": "Author from observed evidence and avoid duplicating existing documentation."
+        },
+        {
+          "id": "repo-instructions-negative-1",
+          "kind": "negative",
+          "prompt": "Give me a tour of this repository.",
+          "expected_skill": null,
+          "expected_behavior": "Leave orientation to repository mapping."
+        },
+        {
+          "id": "repo-instructions-negative-2",
+          "kind": "negative",
+          "prompt": "Rewrite the README introduction so it sounds less corporate.",
+          "expected_skill": null,
+          "expected_behavior": "Leave general prose editing to the writing workflow."
+        },
+        {
+          "id": "repo-instructions-negative-3",
+          "kind": "negative",
+          "prompt": "Follow the AGENTS.md rules and fix the failing parser.",
+          "expected_skill": null,
+          "expected_behavior": "Following instructions is not authoring or auditing them."
+        },
+        {
+          "id": "repo-instructions-edge-1",
+          "kind": "edge",
+          "prompt": "Generate Cursor rules and Copilot instructions identical to our AGENTS.md.",
+          "expected_skill": "repo-instructions",
+          "expected_behavior": "Produce thin host deltas that point to the canonical file after confirming each host's semantics, not copies."
+        },
+        {
+          "id": "repo-instructions-boundary-xray-1",
+          "kind": "edge",
+          "prompt": "Understand this repository's instructions before we start.",
+          "expected_skill": "repo-xray",
+          "expected_behavior": "Route reading instructions for orientation to repository mapping."
+        }
+      ]
+    },
+    {
+      "name": "ci-trust-review",
+      "cases": [
+        {
+          "id": "ci-trust-review-direct-1",
+          "kind": "direct",
+          "prompt": "Use ci-trust-review on our .github directory.",
+          "expected_skill": "ci-trust-review",
+          "expected_behavior": "Trace source, trigger, sink, and privilege for each path and separate findings from hardening notes."
+        },
+        {
+          "id": "ci-trust-review-indirect-1",
+          "kind": "indirect",
+          "prompt": "Can a fork PR steal repository secrets through these workflows?",
+          "expected_skill": "ci-trust-review",
+          "expected_behavior": "Check pull_request_target, workflow_run, checkout refs, and secret availability with cited hops."
+        },
+        {
+          "id": "ci-trust-review-indirect-2",
+          "kind": "indirect",
+          "prompt": "Our Codex agent workflow runs on issue comments. Can a stranger prompt-inject it into pushing code?",
+          "expected_skill": "ci-trust-review",
+          "expected_behavior": "Trace comment text into the agent step and state the token permissions and tools it holds."
+        },
+        {
+          "id": "ci-trust-review-negative-1",
+          "kind": "negative",
+          "prompt": "Why is the Windows CI job failing on this commit?",
+          "expected_skill": null,
+          "expected_behavior": "Leave CI failure diagnosis to debugging."
+        },
+        {
+          "id": "ci-trust-review-negative-2",
+          "kind": "negative",
+          "prompt": "Add a lint job to our CI workflow.",
+          "expected_skill": null,
+          "expected_behavior": "Implementation is not a trust review."
+        },
+        {
+          "id": "ci-trust-review-negative-3",
+          "kind": "negative",
+          "prompt": "Is this npm dependency risky to adopt?",
+          "expected_skill": null,
+          "expected_behavior": "Leave package dependency risk to the dependency workflow."
+        },
+        {
+          "id": "ci-trust-review-negative-4",
+          "kind": "negative",
+          "prompt": "Review this proposed integration design for trust boundaries, failure handling, and migration risk.",
+          "expected_skill": null,
+          "expected_behavior": "A design review is not a CI attacker-path review."
+        },
+        {
+          "id": "ci-trust-review-edge-1",
+          "kind": "edge",
+          "prompt": "Audit CI trust, but the workflows call remote reusable workflows we can't read.",
+          "expected_skill": "ci-trust-review",
+          "expected_behavior": "List the unresolved remote hops and report no finding that depends on them as complete."
+        },
+        {
+          "id": "ci-trust-review-boundary-diff-1",
+          "kind": "edge",
+          "prompt": "Review this workflow diff for ordinary defects.",
+          "expected_skill": "diff-judge",
+          "expected_behavior": "Route ordinary defect review of a workflow change to diff review."
+        }
+      ]
+    },
+    {
+      "name": "dependency-risk",
+      "cases": [
+        {
+          "id": "dependency-risk-direct-1",
+          "kind": "direct",
+          "prompt": "Use dependency-risk to audit our npm lockfile for install scripts and non-registry sources.",
+          "expected_skill": "dependency-risk",
+          "expected_behavior": "Run the offline inventory, report findings with coverage, and keep advisories not checked unless a lookup is authorized."
+        },
+        {
+          "id": "dependency-risk-indirect-1",
+          "kind": "indirect",
+          "prompt": "Should we depend on package left-pad-plus?",
+          "expected_skill": "dependency-risk",
+          "expected_behavior": "Gather primary-source facts for the candidate and end with an adoption decision and coverage."
+        },
+        {
+          "id": "dependency-risk-indirect-2",
+          "kind": "indirect",
+          "prompt": "Which of our transitive dependencies run code at install time?",
+          "expected_skill": "dependency-risk",
+          "expected_behavior": "Separate direct from transitive packages and list install-script packages from the lockfile."
+        },
+        {
+          "id": "dependency-risk-indirect-3",
+          "kind": "indirect",
+          "prompt": "Check our dependencies for known vulnerabilities.",
+          "expected_skill": "dependency-risk",
+          "expected_behavior": "Ask before sending the repository's package list to an advisory service and report advisories as not checked until then."
+        },
+        {
+          "id": "dependency-risk-negative-1",
+          "kind": "negative",
+          "prompt": "How do I configure the retry option in axios?",
+          "expected_skill": null,
+          "expected_behavior": "Library usage questions are research, not dependency risk."
+        },
+        {
+          "id": "dependency-risk-negative-2",
+          "kind": "negative",
+          "prompt": "Are our GitHub Actions pinned to commit SHAs?",
+          "expected_skill": null,
+          "expected_behavior": "Leave Actions references to CI trust review."
+        },
+        {
+          "id": "dependency-risk-negative-3",
+          "kind": "negative",
+          "prompt": "Upgrade all our dependencies to their latest versions.",
+          "expected_skill": null,
+          "expected_behavior": "Upgrading is implementation, not a risk assessment."
+        },
+        {
+          "id": "dependency-risk-edge-1",
+          "kind": "edge",
+          "prompt": "Audit our dependencies for advisories, but we are offline.",
+          "expected_skill": "dependency-risk",
+          "expected_behavior": "Report the local lockfile signals and mark advisories not checked for lack of network."
+        },
+        {
+          "id": "dependency-risk-boundary-research-1",
+          "kind": "edge",
+          "prompt": "What changed in package X's latest API?",
+          "expected_skill": "live-research",
+          "expected_behavior": "Route current API facts to live research."
+        }
+      ]
+    },
+    {
+      "name": "session-checkpoint",
+      "cases": [
+        {
+          "id": "session-checkpoint-direct-1",
+          "kind": "direct",
+          "prompt": "Use session-checkpoint to save where we are.",
+          "expected_skill": "session-checkpoint",
+          "expected_behavior": "Capture repository state and a summarized narrative, print it, and persist it only with approval."
+        },
+        {
+          "id": "session-checkpoint-indirect-1",
+          "kind": "indirect",
+          "prompt": "Resume from checkpoint .agent-checkpoints/auth-refactor.json.",
+          "expected_skill": "session-checkpoint",
+          "expected_behavior": "Compare the checkpoint with the repository before acting and report what moved."
+        },
+        {
+          "id": "session-checkpoint-indirect-2",
+          "kind": "indirect",
+          "prompt": "Save a checkpoint of this session's decisions, unrun tests, and next steps so I can pick it up tomorrow.",
+          "expected_skill": "session-checkpoint",
+          "expected_behavior": "Record decisions, unrun checks, and next actions without command output or secrets."
+        },
+        {
+          "id": "session-checkpoint-negative-1",
+          "kind": "negative",
+          "prompt": "Fix the null check in the session handler.",
+          "expected_skill": null,
+          "expected_behavior": "Do not create or suggest a checkpoint during ordinary work."
+        },
+        {
+          "id": "session-checkpoint-negative-2",
+          "kind": "negative",
+          "prompt": "Summarize what we have done so far.",
+          "expected_skill": null,
+          "expected_behavior": "A summary is not a request to save a checkpoint."
+        },
+        {
+          "id": "session-checkpoint-negative-3",
+          "kind": "negative",
+          "prompt": "Build a handoff packet from these issue notes, repository rules, and test results so another engineer can continue.",
+          "expected_skill": null,
+          "expected_behavior": "Leave handoff packets assembled from supplied material to context gathering."
+        },
+        {
+          "id": "session-checkpoint-edge-1",
+          "kind": "edge",
+          "prompt": "Resume from this checkpoint; I pushed a couple of commits and edited two files since.",
+          "expected_skill": "session-checkpoint",
+          "expected_behavior": "Report advanced and worktree drift, treat recorded evidence as not checked, and reconcile before acting."
+        },
+        {
+          "id": "session-checkpoint-boundary-context-1",
+          "kind": "edge",
+          "prompt": "Continue yesterday's work.",
+          "expected_skill": "context-first",
+          "expected_behavior": "With no checkpoint identified, gather the missing context rather than resuming a checkpoint."
+        }
+      ]
+    },
+    {
+      "name": "patch-proof",
+      "cases": [
+        {
+          "id": "patch-proof-direct-1",
+          "kind": "direct",
+          "prompt": "Use patch-proof to run the reproduction on the base commit and on my fix commit.",
+          "expected_skill": "patch-proof",
+          "expected_behavior": "Pin both revisions, print the exact commands, and execute only after approval."
+        },
+        {
+          "id": "patch-proof-indirect-1",
+          "kind": "indirect",
+          "prompt": "Prove the vulnerability is fixed against the base revision.",
+          "expected_skill": "patch-proof",
+          "expected_behavior": "Plan the original reproduction, a root-cause variant, and legitimate behavior on both pinned revisions."
+        },
+        {
+          "id": "patch-proof-indirect-2",
+          "kind": "indirect",
+          "prompt": "Show that the original crash reproduces before the patch and not after, and that normal uploads still work.",
+          "expected_skill": "patch-proof",
+          "expected_behavior": "Run paired cases in isolated clones and report each case's status with its reason."
+        },
+        {
+          "id": "patch-proof-negative-1",
+          "kind": "negative",
+          "prompt": "Write a regression test for this confirmed bug.",
+          "expected_skill": null,
+          "expected_behavior": "Authoring tests is not paired proof execution."
+        },
+        {
+          "id": "patch-proof-negative-2",
+          "kind": "negative",
+          "prompt": "Why does this test fail intermittently?",
+          "expected_skill": null,
+          "expected_behavior": "Leave unknown causes to debugging."
+        },
+        {
+          "id": "patch-proof-negative-3",
+          "kind": "negative",
+          "prompt": "Review this patch for defects without running anything.",
+          "expected_skill": null,
+          "expected_behavior": "A read-only review of a diff is not execution evidence."
+        },
+        {
+          "id": "patch-proof-edge-1",
+          "kind": "edge",
+          "prompt": "Prove the fix works, but you may not execute anything.",
+          "expected_skill": "patch-proof",
+          "expected_behavior": "Deliver the validated plan and keep the claim not checked; never present source reading as proof."
+        },
+        {
+          "id": "patch-proof-boundary-verify-1",
+          "kind": "edge",
+          "prompt": "Verify this entire fix task is complete; the paired proof is attached.",
+          "expected_skill": "verification-gate",
+          "expected_behavior": "Route the completion verdict to verification, composing the attached proof."
+        },
+        {
+          "id": "patch-proof-boundary-tests-1",
+          "kind": "edge",
+          "prompt": "Add a regression test and show it fails before my fix and passes after it.",
+          "expected_skill": "test-writer",
+          "expected_behavior": "Route authoring a regression test and its fail-then-pass observation to test writing."
+        }
+      ]
+    },
+    {
+      "name": "public-release-audit",
+      "cases": [
+        {
+          "id": "public-release-audit-direct-1",
+          "kind": "direct",
+          "prompt": "Use public-release-audit on this repository.",
+          "expected_skill": "public-release-audit",
+          "expected_behavior": "Report every gate with status and evidence and change nothing."
+        },
+        {
+          "id": "public-release-audit-indirect-1",
+          "kind": "indirect",
+          "prompt": "Is this repository ready to make public?",
+          "expected_skill": "public-release-audit",
+          "expected_behavior": "Audit publication readiness gate by gate, handing CI and dependency gates to their workflows."
+        },
+        {
+          "id": "public-release-audit-indirect-2",
+          "kind": "indirect",
+          "prompt": "Before we open-source this, what could leak from the git history?",
+          "expected_skill": "public-release-audit",
+          "expected_behavior": "Scan history with permission and report secret locations and sensitive files without values."
+        },
+        {
+          "id": "public-release-audit-negative-1",
+          "kind": "negative",
+          "prompt": "Make the repository public.",
+          "expected_skill": null,
+          "expected_behavior": "Changing visibility is an external action, not an audit."
+        },
+        {
+          "id": "public-release-audit-negative-2",
+          "kind": "negative",
+          "prompt": "Tag and publish version 1.5.0.",
+          "expected_skill": null,
+          "expected_behavior": "Publishing is a separately authorized release action."
+        },
+        {
+          "id": "public-release-audit-negative-3",
+          "kind": "negative",
+          "prompt": "Review this pull request for regressions.",
+          "expected_skill": null,
+          "expected_behavior": "Leave diff review to diff review."
+        },
+        {
+          "id": "public-release-audit-edge-1",
+          "kind": "edge",
+          "prompt": "Audit publication readiness, but don't scan the git history.",
+          "expected_skill": "public-release-audit",
+          "expected_behavior": "Mark the history gates not checked and settle the rest."
+        },
+        {
+          "id": "public-release-audit-boundary-verify-1",
+          "kind": "edge",
+          "prompt": "I fixed all blockers from the publication audit; verify the work is done.",
+          "expected_skill": "verification-gate",
+          "expected_behavior": "Route confirmation that specific fixes are complete to verification."
+        }
+      ]
+    }
+  ]
+}

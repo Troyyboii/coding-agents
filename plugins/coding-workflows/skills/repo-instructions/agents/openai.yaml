@@ -1,0 +1,6 @@
+interface:
+  display_name: "Repo Instructions"
+  short_description: "Write or audit agent instruction files"
+  default_prompt: "Use $repo-instructions to check and update this repository's agent instruction files."
+policy:
+  allow_implicit_invocation: true

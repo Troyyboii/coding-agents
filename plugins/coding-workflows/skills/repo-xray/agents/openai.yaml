@@ -1,0 +1,6 @@
+interface:
+  display_name: "Repo X-Ray"
+  short_description: "Map a repository before changing it"
+  default_prompt: "Use $repo-xray to orient me in this repository before we edit anything."
+policy:
+  allow_implicit_invocation: true

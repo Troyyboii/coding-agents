@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "canonical_source": "plugins/coding-workflows/skills",
+  "package_root": "plugins/coding-workflows/claude-app/dist",
+  "package_suffix": ".zip",
+  "excluded_skills": []
+}

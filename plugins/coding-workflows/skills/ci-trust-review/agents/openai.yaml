@@ -1,0 +1,6 @@
+interface:
+  display_name: "CI Trust Review"
+  short_description: "Trace attacker paths through GitHub Actions"
+  default_prompt: "Use $ci-trust-review to check whether outsiders can run code or reach secrets through this repository's workflows."
+policy:
+  allow_implicit_invocation: true

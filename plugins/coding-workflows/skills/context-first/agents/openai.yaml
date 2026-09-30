@@ -1,0 +1,6 @@
+interface:
+  display_name: "Context First"
+  short_description: "Assemble decision-relevant context first"
+  default_prompt: "Use $context-first to gather and compress the context for this decision."
+policy:
+  allow_implicit_invocation: true

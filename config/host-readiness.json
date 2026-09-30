@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "name": "coding-agents",
+  "requirements": [
+    {
+      "kind": "plugin",
+      "name": "coding-workflows",
+      "severity": "required",
+      "enabled": true,
+      "match_repository_version": true,
+      "plugin_id": "coding-workflows@coding-agents",
+      "marketplace_name": "coding-agents"
+    },
+    {
+      "kind": "worker",
+      "name": "luna_worker",
+      "severity": "required"
+    },
+    {
+      "kind": "worker",
+      "name": "luna_max_worker",
+      "severity": "required"
+    },
+    {
+      "kind": "mcp",
+      "name": "github",
+      "severity": "recommended",
+      "enabled": true,
+      "authenticated": true
+    },
+    {
+      "kind": "mcp",
+      "name": "context7",
+      "severity": "optional",
+      "enabled": true,
+      "authenticated": true
+    }
+  ]
+}

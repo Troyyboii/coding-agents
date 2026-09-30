@@ -1,0 +1,6 @@
+interface:
+  display_name: "Skill Supply Audit"
+  short_description: "Audit an agent extension before install"
+  default_prompt: "Use $skill-supply-audit to audit this extension before I install it."
+policy:
+  allow_implicit_invocation: true

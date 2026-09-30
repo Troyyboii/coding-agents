@@ -1,0 +1,6 @@
+interface:
+  display_name: "Spec Trace"
+  short_description: "Trace a spec to code, requirement by requirement"
+  default_prompt: "Use $spec-trace to check this implementation against its specification, requirement by requirement."
+policy:
+  allow_implicit_invocation: true

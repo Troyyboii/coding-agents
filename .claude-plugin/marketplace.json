@@ -1,0 +1,15 @@
+{
+  "name": "coding-agents",
+  "description": "Evidence-first repository, research, debugging, review, verification, testing, design, browser, and writing workflows for Claude Code.",
+  "owner": {
+    "name": "Troyyboii",
+    "url": "https://github.com/Troyyboii"
+  },
+  "plugins": [
+    {
+      "name": "coding-workflows",
+      "source": "./plugins/coding-workflows",
+      "description": "Evidence-first repository, research, debugging, review, verification, testing, design, browser, and writing workflows for Claude Code."
+    }
+  ]
+}
