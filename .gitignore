@@ -126,3 +126,6 @@ repomix-output.*
 
 # Project-scoped VS Code profile
 .vscode-data/
+
+# Project-scoped Codex home (config and plugin cache)
+.codex-home/
