@@ -170,13 +170,18 @@ EXPECTED_SKILLS = {
 
 
 class RepositoryInventoryTests(unittest.TestCase):
-    def make_fixture(self) -> tuple[tempfile.TemporaryDirectory[str], Path]:
+    def make_fixture(
+        self, *, with_dist: bool = True
+    ) -> tuple[tempfile.TemporaryDirectory[str], Path]:
         temporary = tempfile.TemporaryDirectory()
         fixture = Path(temporary.name) / "repo"
+        ignored = [".git", ".artifacts", "__pycache__", "*.pyc", ".codex-home"]
+        if not with_dist:
+            ignored.append("dist")
         shutil.copytree(
             ROOT,
             fixture,
-            ignore=shutil.ignore_patterns(".git", ".artifacts", "__pycache__", "*.pyc"),
+            ignore=shutil.ignore_patterns(*ignored),
         )
         return temporary, fixture
 
@@ -213,7 +218,7 @@ class RepositoryInventoryTests(unittest.TestCase):
             shutil.copytree(
                 ROOT,
                 fixture,
-                ignore=shutil.ignore_patterns(".git", ".artifacts", "__pycache__", "*.pyc"),
+                ignore=shutil.ignore_patterns(".git", ".artifacts", "__pycache__", "*.pyc", ".codex-home", "dist"),
             )
             manifest_path = fixture / "plugins" / "coding-workflows" / ".codex-plugin" / "plugin.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -265,7 +270,7 @@ class RepositoryInventoryTests(unittest.TestCase):
         self.assertIn("| Kimi Code CLI |", render_inventory(inventory))
 
     def test_inventory_never_discovers_unowned_mcp_directories(self) -> None:
-        temporary, fixture = self.make_fixture()
+        temporary, fixture = self.make_fixture(with_dist=False)
         self.addCleanup(temporary.cleanup)
         rogue = fixture / "mcp-servers" / "rogue"
         rogue.mkdir(parents=True)
@@ -1616,13 +1621,18 @@ class RoutingEvaluationTests(unittest.TestCase):
 
 
 class RepositoryValidationTests(unittest.TestCase):
-    def make_fixture(self) -> tuple[tempfile.TemporaryDirectory[str], Path]:
+    def make_fixture(
+        self, *, with_dist: bool = True
+    ) -> tuple[tempfile.TemporaryDirectory[str], Path]:
         temporary = tempfile.TemporaryDirectory()
         fixture = Path(temporary.name) / "repo"
+        ignored = [".git", ".artifacts", "__pycache__", "*.pyc", ".codex-home"]
+        if not with_dist:
+            ignored.append("dist")
         shutil.copytree(
             ROOT,
             fixture,
-            ignore=shutil.ignore_patterns(".git", ".artifacts", "__pycache__", "*.pyc"),
+            ignore=shutil.ignore_patterns(*ignored),
         )
         return temporary, fixture
 
@@ -1633,8 +1643,13 @@ class RepositoryValidationTests(unittest.TestCase):
             if path.is_file()
         }
 
-    def assert_fixture_error(self, mutate, expected: str, tracked_files: list[str] | None = None) -> None:
-        temporary, fixture = self.make_fixture()
+    def assert_fixture_error(self, mutate, expected: str, tracked_files: list[str] | None = None, *, with_dist: bool = False) -> None:
+        # Mini fixtures (no dist) validate ~3x faster and still prove
+        # non-package mutations: package checks report missing outputs, but
+        # the expected error remains present. Package-output tests must pass
+        # with_dist=True so the mutated dist file exists and the expected
+        # package error (not a missing-output error) is produced.
+        temporary, fixture = self.make_fixture(with_dist=with_dist)
         self.addCleanup(temporary.cleanup)
         mutate(fixture)
         errors = fast_validate(fixture, tracked_files)
@@ -1648,7 +1663,7 @@ class RepositoryValidationTests(unittest.TestCase):
         self.assertEqual([], VALIDATOR.validate(fixture, tracked_files=[]))
 
     def test_host_support_package_version_matches_canonical_plugin(self) -> None:
-        temporary, fixture = self.make_fixture()
+        temporary, fixture = self.make_fixture(with_dist=False)
         self.addCleanup(temporary.cleanup)
         matrix = fixture / "docs" / "host-support.md"
         text = matrix.read_text(encoding="utf-8").replace(
@@ -1667,7 +1682,7 @@ class RepositoryValidationTests(unittest.TestCase):
     def test_rejects_non_object_marketplace_payloads_without_attribute_error(self) -> None:
         for payload in ([], None, "not an object"):
             with self.subTest(payload_type=type(payload).__name__):
-                temporary, fixture = self.make_fixture()
+                temporary, fixture = self.make_fixture(with_dist=False)
                 self.addCleanup(temporary.cleanup)
                 marketplace_path = fixture / ".agents" / "plugins" / "marketplace.json"
                 marketplace_path.write_text(json.dumps(payload), encoding="utf-8")
@@ -1681,7 +1696,7 @@ class RepositoryValidationTests(unittest.TestCase):
     def test_rejects_non_object_plugin_manifests_without_attribute_error(self) -> None:
         for payload in ([], None, "not an object"):
             with self.subTest(payload_type=type(payload).__name__):
-                temporary, fixture = self.make_fixture()
+                temporary, fixture = self.make_fixture(with_dist=False)
                 self.addCleanup(temporary.cleanup)
                 manifest_path = fixture / "plugins" / "coding-workflows" / ".codex-plugin" / "plugin.json"
                 manifest_path.write_text(json.dumps(payload), encoding="utf-8")
@@ -1699,7 +1714,7 @@ class RepositoryValidationTests(unittest.TestCase):
             data["plugins"][0]["source"]["path"] = "./plugins/../../outside"
             path.write_text(json.dumps(data), encoding="utf-8")
 
-        temporary, fixture = self.make_fixture()
+        temporary, fixture = self.make_fixture(with_dist=False)
         self.addCleanup(temporary.cleanup)
         mutate(fixture)
         errors = fast_validate(fixture)
@@ -1729,7 +1744,7 @@ class RepositoryValidationTests(unittest.TestCase):
         self.assert_fixture_error(mutate, "validation limit")
 
     def test_rejects_excess_entries_before_extension_filtering(self) -> None:
-        temporary, fixture = self.make_fixture()
+        temporary, fixture = self.make_fixture(with_dist=False)
         self.addCleanup(temporary.cleanup)
         bulk = fixture / "docs" / "bulk"
         bulk.mkdir()
@@ -1743,7 +1758,7 @@ class RepositoryValidationTests(unittest.TestCase):
         self.assertTrue(any("entry validation limit" in error for error in errors), errors)
 
     def test_rejects_excess_agent_entries_before_agent_discovery(self) -> None:
-        temporary, fixture = self.make_fixture()
+        temporary, fixture = self.make_fixture(with_dist=False)
         self.addCleanup(temporary.cleanup)
         agent_root = fixture / ".codex" / "agents"
         baseline_entries = sum(1 for _ in fixture.rglob("*"))
@@ -1759,7 +1774,7 @@ class RepositoryValidationTests(unittest.TestCase):
         )
 
     def test_rejects_looped_manifest_skill_path_without_runtime_error(self) -> None:
-        temporary, fixture = self.make_fixture()
+        temporary, fixture = self.make_fixture(with_dist=False)
         self.addCleanup(temporary.cleanup)
         plugin = fixture / "plugins" / "coding-workflows"
         first = plugin / "loop-a"
@@ -1857,23 +1872,30 @@ class RepositoryValidationTests(unittest.TestCase):
         self.assert_fixture_error(mutate, "invalid Agent Skills description")
 
     def test_rejects_work_mode_package_reference_escape_and_missing_file(self) -> None:
+        # TEST-PERF: focused work_mode validate_packages() proves the package
+        # check without a full repository walk (0.3s vs 2s). Full-validate
+        # integration for Work Mode packages is covered by
+        # test_rejects_work_mode_package_secret_material.
         for replacement, expected in (("../../outside.md", "escapes package root"), ("references/missing.md", "reference is missing")):
             with self.subTest(replacement=replacement):
-                def mutate(fixture: Path, replacement: str = replacement) -> None:
-                    path = fixture / "plugins/coding-workflows/work-mode/dist/context-first/SKILL.md"
-                    path.write_text(
-                        path.read_text(encoding="utf-8").replace("references/workflow-coordination.md", replacement, 1),
-                        encoding="utf-8",
-                    )
-
-                self.assert_fixture_error(mutate, expected)
+                temporary, fixture = self.make_fixture()
+                self.addCleanup(temporary.cleanup)
+                path = fixture / "plugins/coding-workflows/work-mode/dist/context-first/SKILL.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace("references/workflow-coordination.md", replacement, 1),
+                    encoding="utf-8",
+                )
+                errors = validate_packages(fixture)
+                self.assertTrue(any(expected in error for error in errors), errors)
 
     def test_rejects_work_mode_package_local_machine_path(self) -> None:
-        def mutate(fixture: Path) -> None:
-            path = fixture / "plugins/coding-workflows/work-mode/dist/anti-slop/SKILL.md"
-            path.write_text(path.read_text(encoding="utf-8") + "\nC:" + "\\private\\path\n", encoding="utf-8")
-
-        self.assert_fixture_error(mutate, "contains a local machine path")
+        # Focused package validation; see above for integration coverage.
+        temporary, fixture = self.make_fixture()
+        self.addCleanup(temporary.cleanup)
+        path = fixture / "plugins/coding-workflows/work-mode/dist/anti-slop/SKILL.md"
+        path.write_text(path.read_text(encoding="utf-8") + "\nC:" + "\\private\\path\n", encoding="utf-8")
+        errors = validate_packages(fixture)
+        self.assertTrue(any("contains a local machine path" in error for error in errors), errors)
 
     def test_rejects_work_mode_package_secret_material(self) -> None:
         def mutate(fixture: Path) -> None:
@@ -1881,7 +1903,7 @@ class RepositoryValidationTests(unittest.TestCase):
             token = "ghp_" + "abcdefghijklmnopqrstuvwxyz1234567890"
             path.write_text(path.read_text(encoding="utf-8") + f"\n{token}\n", encoding="utf-8")
 
-        self.assert_fixture_error(mutate, "contains secret material")
+        self.assert_fixture_error(mutate, "contains secret material", with_dist=True)
 
     def test_rejects_work_mode_package_symlink_escape(self) -> None:
         temporary, fixture = self.make_fixture()
@@ -1903,51 +1925,58 @@ class RepositoryValidationTests(unittest.TestCase):
             data["excluded_skills"] = ["repo-xray"]
             path.write_text(json.dumps(data), encoding="utf-8")
 
-        self.assert_fixture_error(mutate, "Claude app package set mismatch")
+        self.assert_fixture_error(mutate, "Claude app package set mismatch", with_dist=True)
 
     def test_rejects_claude_app_package_missing_skill_md(self) -> None:
-        def mutate(fixture: Path) -> None:
-            path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
-            with zipfile.ZipFile(path, "w") as archive:
-                archive.writestr("repo-xray/README.md", "no skill file here")
-
-        self.assert_fixture_error(mutate, "is missing repo-xray/SKILL.md")
+        # TEST-PERF: focused claude_app validate_packages() (0.1s vs 2s full).
+        # Full-validate integration for Claude app packages is covered by
+        # test_rejects_claude_app_package_set_mismatch.
+        temporary, fixture = self.make_fixture()
+        self.addCleanup(temporary.cleanup)
+        path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("repo-xray/README.md", "no skill file here")
+        errors = claude_app_validate_packages(fixture)
+        self.assertTrue(any("is missing repo-xray/SKILL.md" in error for error in errors), errors)
 
     def test_rejects_claude_app_package_multiple_top_level_directories(self) -> None:
-        def mutate(fixture: Path) -> None:
-            path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
-            with zipfile.ZipFile(path) as old:
-                entries = {name: old.read(name) for name in old.namelist()}
-            entries["stray/README.md"] = b"stray file at a second top-level directory"
-            with zipfile.ZipFile(path, "w") as new:
-                for name, data in entries.items():
-                    new.writestr(name, data)
-
-        self.assert_fixture_error(mutate, "must contain exactly one top-level directory")
+        temporary, fixture = self.make_fixture()
+        self.addCleanup(temporary.cleanup)
+        path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
+        with zipfile.ZipFile(path) as old:
+            entries = {name: old.read(name) for name in old.namelist()}
+        entries["stray/README.md"] = b"stray file at a second top-level directory"
+        with zipfile.ZipFile(path, "w") as new:
+            for name, data in entries.items():
+                new.writestr(name, data)
+        errors = claude_app_validate_packages(fixture)
+        self.assertTrue(any("must contain exactly one top-level directory" in error for error in errors), errors)
 
     def test_rejects_claude_app_package_path_escape(self) -> None:
-        def mutate(fixture: Path) -> None:
-            path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
-            with zipfile.ZipFile(path) as old:
-                entries = {name: old.read(name) for name in old.namelist()}
-            entries["repo-xray/../escape.md"] = b"escape"
-            with zipfile.ZipFile(path, "w") as new:
-                for name, data in entries.items():
-                    new.writestr(name, data)
-
-        self.assert_fixture_error(mutate, "contains an unsafe path")
+        temporary, fixture = self.make_fixture()
+        self.addCleanup(temporary.cleanup)
+        path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
+        with zipfile.ZipFile(path) as old:
+            entries = {name: old.read(name) for name in old.namelist()}
+        entries["repo-xray/../escape.md"] = b"escape"
+        with zipfile.ZipFile(path, "w") as new:
+            for name, data in entries.items():
+                new.writestr(name, data)
+        errors = claude_app_validate_packages(fixture)
+        self.assertTrue(any("contains an unsafe path" in error for error in errors), errors)
 
     def test_rejects_claude_app_package_codex_only_metadata(self) -> None:
-        def mutate(fixture: Path) -> None:
-            path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
-            with zipfile.ZipFile(path) as old:
-                entries = {name: old.read(name) for name in old.namelist()}
-            entries["repo-xray/agents/openai.yaml"] = b"interface:\n  display_name: x\n"
-            with zipfile.ZipFile(path, "w") as new:
-                for name, data in entries.items():
-                    new.writestr(name, data)
-
-        self.assert_fixture_error(mutate, "contains excluded content")
+        temporary, fixture = self.make_fixture()
+        self.addCleanup(temporary.cleanup)
+        path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
+        with zipfile.ZipFile(path) as old:
+            entries = {name: old.read(name) for name in old.namelist()}
+        entries["repo-xray/agents/openai.yaml"] = b"interface:\n  display_name: x\n"
+        with zipfile.ZipFile(path, "w") as new:
+            for name, data in entries.items():
+                new.writestr(name, data)
+        errors = claude_app_validate_packages(fixture)
+        self.assertTrue(any("contains excluded content" in error for error in errors), errors)
 
     def test_rejects_claude_app_package_reference_escape_and_missing_file(self) -> None:
         for replacement, expected in (
@@ -1955,59 +1984,62 @@ class RepositoryValidationTests(unittest.TestCase):
             ("references/missing.md", "reference is missing"),
         ):
             with self.subTest(replacement=replacement):
-
-                def mutate(fixture: Path, replacement: str = replacement) -> None:
-                    path = fixture / "plugins/coding-workflows/claude-app/dist/context-first.zip"
-                    with zipfile.ZipFile(path) as old:
-                        entries = {name: old.read(name) for name in old.namelist()}
-                    skill_text = entries["context-first/SKILL.md"].decode("utf-8")
-                    entries["context-first/SKILL.md"] = skill_text.replace(
-                        "references/workflow-coordination.md", replacement, 1
-                    ).encode("utf-8")
-                    with zipfile.ZipFile(path, "w") as new:
-                        for name, data in entries.items():
-                            new.writestr(name, data)
-
-                self.assert_fixture_error(mutate, expected)
+                temporary, fixture = self.make_fixture()
+                self.addCleanup(temporary.cleanup)
+                path = fixture / "plugins/coding-workflows/claude-app/dist/context-first.zip"
+                with zipfile.ZipFile(path) as old:
+                    entries = {name: old.read(name) for name in old.namelist()}
+                skill_text = entries["context-first/SKILL.md"].decode("utf-8")
+                entries["context-first/SKILL.md"] = skill_text.replace(
+                    "references/workflow-coordination.md", replacement, 1
+                ).encode("utf-8")
+                with zipfile.ZipFile(path, "w") as new:
+                    for name, data in entries.items():
+                        new.writestr(name, data)
+                errors = claude_app_validate_packages(fixture)
+                self.assertTrue(any(expected in error for error in errors), errors)
 
     def test_rejects_claude_app_package_secret_material(self) -> None:
-        def mutate(fixture: Path) -> None:
-            path = fixture / "plugins/coding-workflows/claude-app/dist/anti-slop.zip"
-            with zipfile.ZipFile(path) as old:
-                entries = {name: old.read(name) for name in old.namelist()}
-            entries["anti-slop/SKILL.md"] += b"\n" + b"ghp_" + b"abcdefghijklmnopqrstuvwxyz1234567890" + b"\n"
-            with zipfile.ZipFile(path, "w") as new:
-                for name, data in entries.items():
-                    new.writestr(name, data)
-
-        self.assert_fixture_error(mutate, "contains secret material")
+        temporary, fixture = self.make_fixture()
+        self.addCleanup(temporary.cleanup)
+        path = fixture / "plugins/coding-workflows/claude-app/dist/anti-slop.zip"
+        with zipfile.ZipFile(path) as old:
+            entries = {name: old.read(name) for name in old.namelist()}
+        entries["anti-slop/SKILL.md"] += b"\n" + b"ghp_" + b"abcdefghijklmnopqrstuvwxyz1234567890" + b"\n"
+        with zipfile.ZipFile(path, "w") as new:
+            for name, data in entries.items():
+                new.writestr(name, data)
+        errors = claude_app_validate_packages(fixture)
+        self.assertTrue(any("contains secret material" in error for error in errors), errors)
 
     def test_rejects_claude_app_package_local_machine_path(self) -> None:
-        def mutate(fixture: Path) -> None:
-            path = fixture / "plugins/coding-workflows/claude-app/dist/anti-slop.zip"
-            with zipfile.ZipFile(path) as old:
-                entries = {name: old.read(name) for name in old.namelist()}
-            entries["anti-slop/SKILL.md"] += b"\nC:" + b"\\private\\path\n"
-            with zipfile.ZipFile(path, "w") as new:
-                for name, data in entries.items():
-                    new.writestr(name, data)
-
-        self.assert_fixture_error(mutate, "contains a local machine path")
+        temporary, fixture = self.make_fixture()
+        self.addCleanup(temporary.cleanup)
+        path = fixture / "plugins/coding-workflows/claude-app/dist/anti-slop.zip"
+        with zipfile.ZipFile(path) as old:
+            entries = {name: old.read(name) for name in old.namelist()}
+        entries["anti-slop/SKILL.md"] += b"\nC:" + b"\\private\\path\n"
+        with zipfile.ZipFile(path, "w") as new:
+            for name, data in entries.items():
+                new.writestr(name, data)
+        errors = claude_app_validate_packages(fixture)
+        self.assertTrue(any("contains a local machine path" in error for error in errors), errors)
 
     def test_rejects_claude_app_package_name_mismatch(self) -> None:
-        def mutate(fixture: Path) -> None:
-            path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
-            with zipfile.ZipFile(path) as old:
-                entries = {name: old.read(name) for name in old.namelist()}
-            skill_text = entries["repo-xray/SKILL.md"].decode("utf-8")
-            entries["repo-xray/SKILL.md"] = skill_text.replace("name: repo-xray", "name: renamed-skill", 1).encode(
-                "utf-8"
-            )
-            with zipfile.ZipFile(path, "w") as new:
-                for name, data in entries.items():
-                    new.writestr(name, data)
-
-        self.assert_fixture_error(mutate, "does not match folder")
+        temporary, fixture = self.make_fixture()
+        self.addCleanup(temporary.cleanup)
+        path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
+        with zipfile.ZipFile(path) as old:
+            entries = {name: old.read(name) for name in old.namelist()}
+        skill_text = entries["repo-xray/SKILL.md"].decode("utf-8")
+        entries["repo-xray/SKILL.md"] = skill_text.replace("name: repo-xray", "name: renamed-skill", 1).encode(
+            "utf-8"
+        )
+        with zipfile.ZipFile(path, "w") as new:
+            for name, data in entries.items():
+                new.writestr(name, data)
+        errors = claude_app_validate_packages(fixture)
+        self.assertTrue(any("does not match folder" in error for error in errors), errors)
 
     def test_claude_zip_metadata_limits_fail_before_member_reads(self) -> None:
         temporary, fixture = self.make_fixture()
@@ -2199,27 +2231,36 @@ class RepositoryValidationTests(unittest.TestCase):
                 )
 
     def test_claude_plugin_rejects_non_skills_components(self) -> None:
-        def mutate_manifest(fixture: Path) -> None:
-            path = fixture / "plugins" / "coding-workflows" / ".claude-plugin" / "plugin.json"
-            data = json.loads(path.read_text(encoding="utf-8"))
-            data["hooks"] = "./hooks/hooks.json"
-            path.write_text(json.dumps(data), encoding="utf-8")
-
-        def mutate_path(fixture: Path, relative: str) -> None:
+        # TEST-PERF: five independent mutations (different files) share one
+        # mini fixture and one validate() instead of five copies+validates.
+        # The validator reports every error; subTests keep diagnostics granular.
+        # Isolation holds because each mutation touches a different path and
+        # each expected error is asserted independently. Each case asserts
+        # both the error class and the specific forbidden path/component so
+        # one rejected entry cannot mask another accidentally accepted one.
+        temporary, fixture = self.make_fixture(with_dist=False)
+        self.addCleanup(temporary.cleanup)
+        manifest_path = fixture / "plugins" / "coding-workflows" / ".claude-plugin" / "plugin.json"
+        data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        data["hooks"] = "./hooks/hooks.json"
+        manifest_path.write_text(json.dumps(data), encoding="utf-8")
+        for relative in ("hooks/hooks.json", ".mcp.json", "commands/custom.md", "skills/repo-xray/hooks/payload.sh"):
             path = fixture / "plugins" / "coding-workflows" / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("{}", encoding="utf-8")
-
-        self.assert_fixture_error(mutate_manifest, "forbidden component fields")
-        for relative, expected in (
-            ("hooks/hooks.json", "unsupported top-level entries"),
-            (".mcp.json", "forbidden component file"),
-            ("commands/custom.md", "unsupported top-level entries"),
-            ("skills/repo-xray/hooks/payload.sh", "unexpected component path"),
-        ):
-            with self.subTest(relative=relative):
-                self.assert_fixture_error(
-                    lambda fixture: mutate_path(fixture, relative), expected
+        errors = fast_validate(fixture)
+        cases = (
+            ("manifest hooks field", "forbidden component fields", "hooks"),
+            ("hooks/hooks.json", "unsupported top-level entries", "hooks"),
+            (".mcp.json", "forbidden component file", ".mcp.json"),
+            ("commands/custom.md", "unsupported top-level entries", "commands"),
+            ("skills/repo-xray/hooks/payload.sh", "unexpected component path", "hooks/payload.sh"),
+        )
+        for label, expected_class, expected_path in cases:
+            with self.subTest(case=label):
+                self.assertTrue(
+                    any(expected_class in error and expected_path in error for error in errors),
+                    f"{label!r} not represented in validator errors: {errors}",
                 )
 
     def test_claude_subagents_require_exact_read_only_allowlist(self) -> None:
@@ -2285,7 +2326,7 @@ class RepositoryValidationTests(unittest.TestCase):
                 f"SCAN_TOKEN = {token!r}\nSCAN_PATH = {path_text!r}\n", encoding="utf-8"
             )
 
-        temporary, fixture = self.make_fixture()
+        temporary, fixture = self.make_fixture(with_dist=False)
         self.addCleanup(temporary.cleanup)
         mutate(fixture)
         errors = fast_validate(fixture)

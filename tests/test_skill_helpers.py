@@ -170,34 +170,43 @@ class HelperLayoutTests(unittest.TestCase):
         return VALIDATOR.validate(fixture, tracked_files=[], check_generated_packages=False)
 
     def test_compliant_helper_layout_is_accepted(self) -> None:
-        fixture = make_repo_fixture(self)
+        fixture = make_repo_fixture(self, with_dist=False)
         self.add_probe(fixture)
         errors = self.errors_for(fixture)
         relevant = [e for e in errors if "probe.py" in e or "sharedmod" in e or "component path" in e]
         self.assertEqual([], relevant)
 
     def test_executable_components_outside_the_helper_path_are_rejected(self) -> None:
-        for relative in ("scripts/probe.sh", "scripts/nested/probe.py", "hooks/probe.py", "commands/probe.md"):
+        # TEST-PERF: four independent paths share one mini fixture and one
+        # validate() instead of four copies+validates. Each error names its
+        # path, so subTests keep per-path proof granular.
+        relatives = ("scripts/probe.sh", "scripts/nested/probe.py", "hooks/probe.py", "commands/probe.md")
+        fixture = make_repo_fixture(self, with_dist=False)
+        skill = SKILLS.relative_to(ROOT)
+        skill_md = fixture / skill / "repo-xray" / "SKILL.md"
+        mentions = skill_md.read_text(encoding="utf-8")
+        for relative in relatives:
+            path = fixture / skill / "repo-xray" / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('"""Doc."""\n', encoding="utf-8")
+            mentions += f"\n`{relative}`\n"
+        skill_md.write_text(mentions, encoding="utf-8")
+        errors = self.errors_for(fixture)
+        for relative in relatives:
             with self.subTest(relative=relative):
-                fixture = make_repo_fixture(self)
-                skill = SKILLS.relative_to(ROOT)
-                path = fixture / skill / "repo-xray" / relative
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text('"""Doc."""\n', encoding="utf-8")
-                skill_md = fixture / skill / "repo-xray" / "SKILL.md"
-                skill_md.write_text(skill_md.read_text(encoding="utf-8") + f"\n`{relative}`\n", encoding="utf-8")
-                errors = self.errors_for(fixture)
-                self.assertTrue(any("unexpected component path" in e for e in errors), errors)
+                self.assertTrue(
+                    any("unexpected component path" in e and relative in e for e in errors), errors
+                )
 
     def test_subprocess_allowance_is_tied_to_the_helper_path(self) -> None:
-        fixture = make_repo_fixture(self)
+        fixture = make_repo_fixture(self, with_dist=False)
         helper = f'"""Doc."""\nimport subprocess\nsubprocess.run(["git", "status"])\n{GUARD}'
         self.add_probe(fixture, helper=helper, name="checkpoint.py", shared=False)
         errors = self.errors_for(fixture)
         self.assertTrue(any("checkpoint.py imports subprocess without" in e for e in errors), errors)
 
     def test_orphaned_support_files_and_unconsumed_shared_modules_are_rejected(self) -> None:
-        fixture = make_repo_fixture(self)
+        fixture = make_repo_fixture(self, with_dist=False)
         skill = self.add_probe(fixture, mention=False)
         (skill / "references").mkdir(exist_ok=True)
         (skill / "references" / "unused.md").write_text("# Unused\n", encoding="utf-8")
@@ -209,7 +218,7 @@ class HelperLayoutTests(unittest.TestCase):
                 )
 
     def test_helper_importing_unnamed_shared_module_is_rejected(self) -> None:
-        fixture = make_repo_fixture(self)
+        fixture = make_repo_fixture(self, with_dist=False)
         skill = self.add_probe(fixture, mention=False)
         skill_md = skill / "SKILL.md"
         skill_md.write_text(skill_md.read_text(encoding="utf-8") + "\nHelper: `scripts/probe.py`.\n", encoding="utf-8")
@@ -221,7 +230,7 @@ class HelperLayoutTests(unittest.TestCase):
         self.assertTrue(any("does not name as ../../references/sharedmod.py" in e for e in errors), errors)
 
     def test_shared_python_module_is_copied_verbatim_and_helper_runs_in_every_layout(self) -> None:
-        fixture = make_repo_fixture(self)
+        fixture = make_repo_fixture(self, with_dist=False)
         self.add_probe(fixture)
         source = (fixture / "plugins" / "coding-workflows" / "references" / "sharedmod.py").read_bytes()
         out = temp_dir(self)
@@ -271,7 +280,7 @@ class HelperLayoutTests(unittest.TestCase):
         self.assertTrue(any("forbidden component path" in e and "extra/x.py" in e for e in errors), errors)
 
     def test_inventory_lists_helpers_with_their_subprocess_policy(self) -> None:
-        fixture = make_repo_fixture(self)
+        fixture = make_repo_fixture(self, with_dist=False)
         self.add_probe(fixture)
         work_mode_packages.build_packages(fixture)
         claude_app_packages.build_packages(fixture)
@@ -315,12 +324,38 @@ class ShippedHelperTests(unittest.TestCase):
         self.assertLessEqual(len(shims), 1, shims)
 
     def test_every_shipped_helper_runs_from_every_distribution_layout(self) -> None:
+        # TEST-PERF: the full helper x layout cross product (7x6=42
+        # subprocess launches) dominates Windows time via process creation
+        # + AV scanning. Layout rewriting is uniform builder code, so prove
+        # the matrix without the cross product: every helper runs in the
+        # canonical layout, every layout file exists, and one representative
+        # helper (checkpoint.py: cw_scan shared module + git subprocess)
+        # runs in every layout.
         base = ROOT / "plugins" / "coding-workflows"
         extracted = temp_dir(self)
-        for path in shipped_helpers():
+        helpers = shipped_helpers()
+        for path in helpers:
             skill = path.parent.parent.name
             with zipfile.ZipFile(base / "claude-app" / "dist" / f"{skill}.zip") as archive:
                 archive.extractall(extracted)
+        representative = next(path for path in helpers if path.name == "checkpoint.py")
+        representative_skill = representative.parent.parent.name
+        representative_layouts = {
+            "canonical": representative,
+            "work-mode": base / "work-mode" / "dist" / representative_skill / "scripts" / representative.name,
+            "portable": base / "agent-skills" / "dist" / "skills" / representative_skill / "scripts" / representative.name,
+            "gemini": base / "gemini" / "dist" / "skills" / representative_skill / "scripts" / representative.name,
+            "kimi": base / "kimi" / "dist" / "skills" / representative_skill / "scripts" / representative.name,
+            "claude-app": extracted / representative_skill / "scripts" / representative.name,
+        }
+        for label, helper in representative_layouts.items():
+            with self.subTest(helper=f"{representative_skill}/{representative.name}", layout=label):
+                self.assertTrue(helper.is_file(), helper)
+                result = run_python(helper, "--help")
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertIn("usage:", result.stdout)
+        for path in helpers:
+            skill = path.parent.parent.name
             layouts = {
                 "canonical": path,
                 "work-mode": base / "work-mode" / "dist" / skill / "scripts" / path.name,
@@ -332,14 +367,22 @@ class ShippedHelperTests(unittest.TestCase):
             for label, helper in layouts.items():
                 with self.subTest(helper=f"{skill}/{path.name}", layout=label):
                     self.assertTrue(helper.is_file(), helper)
-                    result = run_python(helper, "--help")
-                    self.assertEqual(0, result.returncode, result.stderr)
-                    self.assertIn("usage:", result.stdout)
+            # Distribution contract requires verbatim helper copies: every
+            # generated layout must be byte-identical to canonical. Reads
+            # only, no extra subprocess execution.
+            canonical_bytes = path.read_bytes()
+            for label in ("work-mode", "portable", "gemini", "kimi", "claude-app"):
+                with self.subTest(helper=f"{skill}/{path.name}", layout=f"{label}-verbatim"):
+                    self.assertEqual(canonical_bytes, layouts[label].read_bytes(), layouts[label])
+            with self.subTest(helper=f"{skill}/{path.name}", layout="canonical"):
+                result = run_python(path, "--help")
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertIn("usage:", result.stdout)
 
 
 class LedgerTestDiscoveryTests(unittest.TestCase):
     def test_verified_findings_may_cite_tests_from_any_test_module(self) -> None:
-        fixture = make_repo_fixture(self)
+        fixture = make_repo_fixture(self, with_dist=False)
         ledger = fixture / "docs" / "audit-findings.md"
         text = ledger.read_text(encoding="utf-8")
         lines = text.split("\n")

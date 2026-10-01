@@ -44,13 +44,23 @@ def load_helper(skill: str, helper: str):
     return load_module(f"skill_helper_{skill.replace('-', '_')}_{Path(helper).stem}", SKILLS / skill / "scripts" / helper)
 
 
-def make_repo_fixture(testcase: unittest.TestCase) -> Path:
-    """Copy the repository into a temporary directory that is removed after the test."""
+def make_repo_fixture(testcase: unittest.TestCase, *, with_dist: bool = True) -> Path:
+    """Copy the repository into a temporary directory that is removed after the test.
+
+    Tests whose subject is unrelated to generated-package outputs may pass
+    ``with_dist=False`` to skip the ``*/dist`` trees (314 files). Structural
+    package checks then report missing outputs, but non-package assertions
+    using ``any(expected in error)`` still prove their mutation is detected
+    while the fixture copies and validates ~3x faster.
+    """
 
     temporary = tempfile.TemporaryDirectory()
     testcase.addCleanup(temporary.cleanup)
     fixture = Path(temporary.name) / "repo"
-    shutil.copytree(ROOT, fixture, ignore=shutil.ignore_patterns(".git", ".artifacts", "__pycache__", "*.pyc"))
+    ignored = [".git", ".artifacts", "__pycache__", "*.pyc", ".codex-home"]
+    if not with_dist:
+        ignored.append("dist")
+    shutil.copytree(ROOT, fixture, ignore=shutil.ignore_patterns(*ignored))
     return fixture
 
 
