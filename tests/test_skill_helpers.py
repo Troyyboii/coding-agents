@@ -368,12 +368,18 @@ class ShippedHelperTests(unittest.TestCase):
                 with self.subTest(helper=f"{skill}/{path.name}", layout=label):
                     self.assertTrue(helper.is_file(), helper)
             # Distribution contract requires verbatim helper copies: every
-            # generated layout must be byte-identical to canonical. Reads
-            # only, no extra subprocess execution.
+            # directory layout must be byte-identical to canonical, and the
+            # claude.ai ZIP must equal canonical after the builder's LF
+            # normalization (a Windows checkout has CRLF). Reads only, no
+            # extra subprocess execution.
             canonical_bytes = path.read_bytes()
-            for label in ("work-mode", "portable", "gemini", "kimi", "claude-app"):
+            for label in ("work-mode", "portable", "gemini", "kimi"):
                 with self.subTest(helper=f"{skill}/{path.name}", layout=f"{label}-verbatim"):
                     self.assertEqual(canonical_bytes, layouts[label].read_bytes(), layouts[label])
+            with self.subTest(helper=f"{skill}/{path.name}", layout="claude-app-verbatim"):
+                self.assertIn(path.suffix.lower(), claude_app_packages.TEXT_ARTIFACT_SUFFIXES)
+                normalized = canonical_bytes.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+                self.assertEqual(normalized, layouts["claude-app"].read_bytes(), layouts["claude-app"])
             with self.subTest(helper=f"{skill}/{path.name}", layout="canonical"):
                 result = run_python(path, "--help")
                 self.assertEqual(0, result.returncode, result.stderr)
