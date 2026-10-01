@@ -22,9 +22,8 @@ a commit, tag, push, GitHub release, or plugin-directory submission.
    canonical plugin manifests. `validate-repository.py` checks this value.
 6. Regenerate `docs/inventory.md`.
 7. Move the changelog entries into a dated version section without inventing
-   prior release history.
-   The `1.5.0` section is already prepared but undated; set its date when the tag
-   is created.
+   prior release history. Date the release section on the release commit used for
+   the tag.
 
 ## Verify
 

@@ -1,9 +1,9 @@
 # coding-agents: Product and Implementation Program
 
-Status: `CURRENT` as the canonical program document. Version `1.5.0` is prepared
-as the first public release candidate, but the repository is not yet public and
-the release has not been tagged or published; publication remains a target
-milestone, not the current state.
+Status: `CURRENT` as the canonical program document. Version `1.5.0` is the
+first release line. Repository visibility and the existence of the GitHub tag
+and release are external state and must be verified live rather than inferred
+from this document.
 
 This document is the long-lived product and implementation map for
 `Troyyboii/coding-agents`. It describes the machine the repository is building,
@@ -58,7 +58,8 @@ Code, its Agent Plugins 1.0 manifest is documented by Cursor and GitHub Copilot,
 and generated Agent Skills packages cover Gemini CLI, Kimi Code, and hosts that
 consume the shared skills format. The versioned [host support matrix](./host-support.md)
 records repository evidence separately from untested host behavior. Public
-V1 publication and live installation proof remain outstanding.
+availability and live host installation remain external state; runtime proof is
+limited to what that matrix records.
 
 Its primary job is to make coding-agent work more reliable at the points where
 agents commonly overreach or make unsupported claims:
@@ -216,8 +217,8 @@ program without becoming a second inventory generator.
 | Routing evaluation | `plugins/coding-workflows/evals/trigger-routing.json` is a stable labeled corpus; `scripts/routing_evals.py` supports a free dry run and optional model-backed runs. | The dry run executes without model calls or report files; model-backed results require human review. `CURRENT` as evaluation machinery | No automated result can substitute for human review of usefulness, safety, or boundary behavior. `PARTIAL` |
 | CI and documentation hygiene | GitHub Actions run the repository-owned semantic workflow check, offline link and Markdown checks, repository validation, inventory, all generated-package `--check` commands, unit tests, Python compilation, and a full event-base whitespace comparison on Ubuntu and Windows. | `.github/workflows/knowledge-hygiene.yml` and `.github/workflows/validate-repository.yml`. `CURRENT` as a repository contract | Hosted CI health for a future public release must be checked on the exact release candidate. |
 | Research and integration notes | `docs/research/`, `docs/integrations/`, and `docs/tools/` record bounded mechanisms, provenance, optional tools, and host ownership; they are not runtime dependencies. | Inventory marks optional review candidates and external integrations separately. `CURRENT` as documentation | Refresh research only when a fact could change a product, security, or compatibility decision; use the host support matrix for volatile status. |
-| Release/versioning | The plugin manifests, host matrix, and generated packages carry version `1.5.0`; `CHANGELOG.md` has a `1.5.0` first-release section (undated, pending publication) above an empty Unreleased section; `docs/releasing.md` defines verification and separately authorized publication steps. | Release checklist and repository validation, which checks version parity. `CURRENT` for the prepared candidate | No tag, GitHub release, or dated release record exists. `PUBLIC-BLOCKER` for a V1 release claim |
-| Public-facing adoption | `README.md` gives the skill overview, Codex and Claude Code quick starts, delivery routes, contribution and validation commands, and links the versioned support matrix. | Internal links and Markdown are checked. `CURRENT` as orientation | Clean-environment stranger testing and a final owner release review remain; the repository stays private until the owner changes its visibility. `PUBLIC-READINESS` |
+| Release/versioning | The plugin manifests, host matrix, generated packages, and dated `CHANGELOG.md` release section carry version `1.5.0`; `docs/releasing.md` defines verification and separately authorized publication steps. | Release checklist and repository validation, which checks version parity. `CURRENT` for the release line | The tag and GitHub Release are external state and must be verified against the exact release commit rather than inferred from the tree. |
+| Public-facing adoption | `README.md` gives the skill overview, Codex and Claude Code quick starts, delivery routes, contribution and validation commands, and links the versioned support matrix. | Internal links and Markdown are checked. `CURRENT` as orientation | Repository visibility is owner-controlled external state. Clean-environment stranger testing remains separate evidence rather than a tree-level claim. `PUBLIC-READINESS` |
 | Archive/vendor boundary | The active tree excludes validator-rejected legacy roots and does not own an MCP server or dependency tree; the research ledger records source provenance without becoming a prompt corpus. | Validator stale/legacy markers, path rules, inventory boundaries, and `.gitignore` support this. `CURRENT` in inspected scope | A history privacy scrub was completed (owner-reported); bundled assets, third-party attribution, and supply-chain assumptions still require an explicit owner review, and the publication audit should be repeated on the exact release candidate. `UNVERIFIED` |
 
 ## 7. System architecture
@@ -680,8 +681,8 @@ not claim a secret, external state, or historical fact that was not observed.
 
 | Label | Finding | Evidence path | Program consequence |
 | --- | --- | --- | --- |
-| `PUBLIC-BLOCKER` | The repository is private (owner-stated); the local tree cannot establish GitHub visibility or settings. A stranger-path installation test from a clean environment has not been run. | `README.md`, `CLOUD_CODING_SETUP.md` | Confirm repository identity and visibility through an authorized owner view before a public V1 claim; run the clean-environment stranger-path test named in this section's readiness workstreams. |
-| `PUBLIC-BLOCKER` | Version `1.5.0` and its changelog section are prepared, but the section is undated and the inspected tree establishes no tag or GitHub release. | `CHANGELOG.md`, `docs/releasing.md`, `plugins/coding-workflows/.codex-plugin/plugin.json` | Owner must execute a separately authorized tag/release, date the changelog section, and verify the exact candidate before calling the project a released V1. |
+| `PUBLIC-READINESS` | Repository visibility is external GitHub state and cannot be established from the tree. A stranger-path installation test from a clean environment has not been run. | `README.md`, `CLOUD_CODING_SETUP.md` | Verify repository visibility through an authorized owner view before claiming public availability; treat clean-environment testing as separate evidence. |
+| `RELEASE` | Version `1.5.0` and its changelog section are dated and aligned with the repository manifests. | `CHANGELOG.md`, `docs/releasing.md`, `plugins/coding-workflows/.codex-plugin/plugin.json` | Verify the external tag and GitHub Release point at the exact release commit; do not infer them from the tree. |
 | `PUBLIC-READINESS` | A versioned public host support matrix and troubleshooting guide now record host routes, repository checks, review date, and runtime limits. Clean-environment installation and workflow evidence remain open. | `README.md`, `docs/host-support.md`, `docs/host-troubleshooting.md` | Keep claims aligned with the matrix and complete the stranger-path installation test before a public V1 claim. |
 | `DISTRIBUTION` | Work Mode generation and package validation are repository-owned and current, while account installation, enablement, synchronization, and availability are explicitly unverified. | `docs/work-mode.md`, `plugins/coding-workflows/work-mode/manifest.json`, `scripts/work_mode_packages.py` | Public V1 may promise generated artifacts and documented selection, not automatic account delivery. |
 | `METADATA` | Plugin metadata contains repository-owned homepage, repository, license, keyword, and display fields; GitHub repository description, topics, and visibility settings are not established by the local tree and may lag the repository (for example, a description that still states an older skill count). | `plugins/coding-workflows/.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json` | Owner must review public repository metadata separately; do not infer it from local manifests. |
@@ -864,12 +865,11 @@ is public” is not itself evidence that these gates passed.
 - All launch blockers from the readiness findings are resolved or explicitly
   accepted with a reason, scope, owner, and follow-up.
 
-The current repository does not meet this gate solely from the inspected local
-state: the repository is private, the `1.5.0` changelog section is undated and
-unpublished, and public metadata, clean-environment proof, and release proof
-remain separate work or owner decisions. Host and account proof is required
-only for claims that V1 chooses to make about those external surfaces; otherwise
-it must be explicitly scoped out.
+The repository tree alone cannot establish this gate because public visibility,
+the external tag and GitHub Release, and clean-environment behavior are external
+state. Repository-owned validation and CI must be green on the exact release
+candidate. Host and account proof is required only for claims that V1 chooses to
+make about those external surfaces; otherwise it must be explicitly scoped out.
 
 ## 17. Contributor model
 
@@ -1021,10 +1021,9 @@ features discovered during the audit.
 
 ### Phase 3 — Public V1
 
-**Status:** `PARTIAL`. Version `1.5.0`, its changelog section, the manifests, the
-host matrix, and the generated packages are prepared as the release candidate.
-Phase 2 gates, the dated release record, and every external publication step
-remain open.
+**Status:** Tree-contained release metadata is prepared for version `1.5.0`.
+Public visibility, the external tag, and the GitHub Release are verified from
+live GitHub state rather than this document.
 
 **Objective:** Publish the bounded product promised in Section 15 with a real
 version and a reproducible release record.

@@ -7,14 +7,13 @@ All notable changes are recorded here. This file follows
 
 No unreleased changes yet.
 
-## 1.5.0 - first public release (pending publication)
+## 1.5.0 - 2026-10-01
 
-This is the first public release of `coding-agents`; there are no earlier releases.
-The package manifests already carry version `1.5.0`, but the release has not been
-tagged or published, so no release date is recorded yet. Set the date when the tag is
-created (see [docs/releasing.md](./docs/releasing.md)). Every host route below is a
-repository-level structural contract, not proof of live installation or runtime behavior
-in a host account; see [docs/host-support.md](./docs/host-support.md).
+This is the first release of `coding-agents`; there are no earlier releases.
+The package manifests and generated distributions carry version `1.5.0`. Every host
+route below is a repository-level structural contract, not proof of live installation
+or runtime behavior in a host account; see
+[docs/host-support.md](./docs/host-support.md).
 
 ### Added
 
