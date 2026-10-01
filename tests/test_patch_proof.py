@@ -165,8 +165,8 @@ class PatchProofTests(unittest.TestCase):
 
     def test_timeout_terminates_the_process_group(self) -> None:
         marker = self.work / "grandchild.marker"
-        child = f"import time; time.sleep(3); open({str(marker)!r}, 'w')"
-        parent = f"import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', {child!r}]); time.sleep(60)"
+        child = f"import time; time.sleep(2); open({str(marker)!r}, 'w')"
+        parent = f"import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', {child!r}]); time.sleep(30)"
         cases = [{"id": "hang", "role": "reproduction", "argv": [PY, "-c", parent], "timeout_s": 1,
                   "expect": {"revision": {"exit": 0}}}]
         started = time.monotonic()
@@ -176,7 +176,9 @@ class PatchProofTests(unittest.TestCase):
         self.assertEqual(("blocked", "timeout"), (report["cases"][0]["status"], report["cases"][0]["reason"]))
         self.assertTrue(report["cases"][0]["sides"]["revision"]["timed_out"])
         self.assertTrue(report["source_worktree_unchanged"])
-        time.sleep(4)
+        # Wait past the grandchild's sleep so a surviving grandchild would
+        # have written the marker by the time we assert it is absent.
+        time.sleep(3)
         if os.name == "nt":
             # A surviving grandchild may hold the scratch clone; cleanup is retried and reported, never raised.
             self.assertTrue(report["cleanup"] == "removed" or report["cleanup"].startswith("removal failed"), report["cleanup"])

@@ -21,6 +21,11 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+# Never write bytecode next to the sources under test: executing helpers that
+# live inside generated package trees must not drop __pycache__/*.pyc into
+# those outputs and contaminate package-currentness validation.
+sys.dont_write_bytecode = True
+
 from repository_inventory import (  # noqa: E402
     REVIEW_CANDIDATES,
     collect_inventory,
@@ -114,6 +119,32 @@ DIFF_CHECK = importlib.util.module_from_spec(DIFF_CHECK_SPEC)
 DIFF_CHECK_SPEC.loader.exec_module(DIFF_CHECK)
 
 
+def fast_validate(root, tracked_files=None):
+    """TEST-ONLY fast path: validator without generated-package rebuilds.
+
+    Structural package checks still run; only the rebuild comparisons are
+    skipped. Package integration tests must keep the default enabled checks.
+    """
+
+    return VALIDATOR.validate(
+        root,
+        tracked_files=[] if tracked_files is None else tracked_files,
+        check_generated_packages=False,
+    )
+
+
+def fast_inventory(root):
+    """TEST-ONLY fast path: inventory without generated-package rebuilds."""
+
+    return collect_inventory(root, check_generated_packages=False)
+
+
+def fast_generated(root, check=True):
+    """TEST-ONLY fast path: inventory generation without package rebuilds."""
+
+    return GENERATOR.generate_inventory(root, check=check, check_generated_packages=False)
+
+
 EXPECTED_SKILLS = {
     "anti-slop",
     "browser-proof",
@@ -189,14 +220,14 @@ class RepositoryInventoryTests(unittest.TestCase):
             manifest["skills"] = value
             manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "skills path"):
-                collect_inventory(fixture)
+                fast_inventory(fixture)
             with self.assertRaisesRegex(ValueError, "skills path"):
-                GENERATOR.generate_inventory(fixture, check=True)
-            errors = VALIDATOR.validate(fixture, tracked_files=[])
+                fast_generated(fixture, check=True)
+            errors = fast_validate(fixture)
             self.assertTrue(any("skills path" in error for error in errors), errors)
 
     def test_inventory_contains_only_active_capabilities(self) -> None:
-        inventory = collect_inventory(ROOT)
+        inventory = fast_inventory(ROOT)
         self.assertEqual(["coding-workflows"], [item["name"] for item in inventory["plugins"]])
         self.assertEqual(EXPECTED_SKILLS, {item["name"] for item in inventory["skills"]})
         self.assertEqual("plugins/coding-workflows/skills", inventory["work_mode"]["canonical_source"])
@@ -223,7 +254,7 @@ class RepositoryInventoryTests(unittest.TestCase):
                 self.assertTrue(reason.strip(), path)
 
     def test_inventory_render_is_deterministic(self) -> None:
-        inventory = collect_inventory(ROOT)
+        inventory = fast_inventory(ROOT)
         self.assertEqual(render_inventory(inventory), render_inventory(inventory))
         self.assertIn("| Local MCP servers | 0 |", render_inventory(inventory))
         self.assertIn("## Possible Unused or Optional Material", render_inventory(inventory))
@@ -239,11 +270,13 @@ class RepositoryInventoryTests(unittest.TestCase):
         rogue = fixture / "mcp-servers" / "rogue"
         rogue.mkdir(parents=True)
         (rogue / "server.txt").write_text("unowned\n", encoding="utf-8")
-        inventory = collect_inventory(fixture)
+        inventory = fast_inventory(fixture)
         self.assertEqual([], inventory["local_mcps"])
         self.assertNotIn("rogue", render_inventory(inventory))
 
     def test_inventory_requires_current_generated_package_outputs(self) -> None:
+        # Intentionally slow: real end-to-end collect_inventory() -> generated
+        # package currentness for every package family.
         mutations = (
             (
                 "missing-work-mode",
@@ -285,7 +318,7 @@ class RepositoryInventoryTests(unittest.TestCase):
                     collect_inventory(fixture)
 
     def test_claude_plugin_reuses_canonical_skill_source(self) -> None:
-        inventory = collect_inventory(ROOT)
+        inventory = fast_inventory(ROOT)
         self.assertIsNotNone(inventory["claude_code"])
         self.assertEqual("plugins/coding-workflows/skills", inventory["claude_code"]["canonical_source"])
         self.assertEqual(len(EXPECTED_SKILLS), inventory["claude_code"]["skill_count"])
@@ -456,7 +489,7 @@ class RepositoryInventoryTests(unittest.TestCase):
         self.assertNotIn("repo-xray", claude_app_active_skill_names(fixture))
         self.assertEqual([], claude_app_validate_packages(fixture))
         self.assertTrue(claude_app_packages_are_current(fixture))
-        self.assertEqual(len(EXPECTED_SKILLS) - 1, collect_inventory(fixture)["claude_app"]["skill_count"])
+        self.assertEqual(len(EXPECTED_SKILLS) - 1, fast_inventory(fixture)["claude_app"]["skill_count"])
 
     def test_claude_app_rejects_unknown_and_duplicate_exclusions(self) -> None:
         for exclusions, expected in ((["missing-skill"], "unknown skills"), (["repo-xray", "repo-xray"], "unique")):
@@ -651,7 +684,7 @@ class RepositoryInventoryTests(unittest.TestCase):
             self.assertTrue(packages_are_current(ROOT))
             self.assertTrue(claude_app_packages_are_current(ROOT))
             self.assertTrue(agent_skill_packages_are_current(ROOT))
-            current, _ = GENERATOR.generate_inventory(ROOT, check=True)
+            current, _ = fast_generated(ROOT, check=True)
             self.assertTrue(current)
         # The destination itself being a link must still be rejected.
         real_destination = Path(temporary.name) / "real-destination"
@@ -679,14 +712,14 @@ class RepositoryInventoryTests(unittest.TestCase):
                 fixture,
                 ignore=shutil.ignore_patterns(".git", ".artifacts", "__pycache__", "*.pyc"),
             )
-            current, _ = GENERATOR.generate_inventory(fixture, check=True)
+            current, _ = fast_generated(fixture, check=True)
             self.assertTrue(current)
             inventory_path = fixture / "docs" / "inventory.md"
             inventory_path.write_text("stale\n", encoding="utf-8")
-            current, _ = GENERATOR.generate_inventory(fixture, check=True)
+            current, _ = fast_generated(fixture, check=True)
             self.assertFalse(current)
-            GENERATOR.generate_inventory(fixture)
-            current, _ = GENERATOR.generate_inventory(fixture, check=True)
+            fast_generated(fixture, check=False)
+            current, _ = fast_generated(fixture, check=True)
             self.assertTrue(current)
 
     def test_generator_rejects_docs_directory_symlink_outside_fixture(self) -> None:
@@ -703,7 +736,7 @@ class RepositoryInventoryTests(unittest.TestCase):
 
         raised = False
         try:
-            GENERATOR.generate_inventory(fixture)
+            fast_generated(fixture, check=False)
         except (OSError, ValueError):
             raised = True
 
@@ -722,7 +755,7 @@ class RepositoryInventoryTests(unittest.TestCase):
 
         raised = False
         try:
-            GENERATOR.generate_inventory(fixture)
+            fast_generated(fixture, check=False)
         except (OSError, ValueError):
             raised = True
 
@@ -738,7 +771,7 @@ class RepositoryInventoryTests(unittest.TestCase):
         self.symlink_or_skip(plugin_link, outside_plugin, target_is_directory=True)
 
         with self.assertRaises((OSError, ValueError)):
-            collect_inventory(fixture)
+            fast_inventory(fixture)
 
     def test_repository_path_rejects_symlink_loop_without_runtime_error(self) -> None:
         temporary, fixture = self.make_fixture()
@@ -1604,10 +1637,11 @@ class RepositoryValidationTests(unittest.TestCase):
         temporary, fixture = self.make_fixture()
         self.addCleanup(temporary.cleanup)
         mutate(fixture)
-        errors = VALIDATOR.validate(fixture, tracked_files=[] if tracked_files is None else tracked_files)
+        errors = fast_validate(fixture, tracked_files)
         self.assertTrue(any(expected in error for error in errors), errors)
 
     def test_clean_fixture_passes_without_git_metadata(self) -> None:
+        # Intentionally slow: real end-to-end validate() -> package validation/currentness.
         temporary, fixture = self.make_fixture()
         self.addCleanup(temporary.cleanup)
         agent_skill_build_packages(fixture)
@@ -1621,7 +1655,7 @@ class RepositoryValidationTests(unittest.TestCase):
             "**Package version:** `1.5.0`", "**Package version:** `9.9.9`", 1
         )
         matrix.write_text(text, encoding="utf-8")
-        errors = VALIDATOR.validate(fixture, tracked_files=[])
+        errors = fast_validate(fixture)
         self.assertTrue(any("Host support matrix package version must match" in error for error in errors), errors)
 
     def test_rejects_malformed_marketplace(self) -> None:
@@ -1638,7 +1672,7 @@ class RepositoryValidationTests(unittest.TestCase):
                 marketplace_path = fixture / ".agents" / "plugins" / "marketplace.json"
                 marketplace_path.write_text(json.dumps(payload), encoding="utf-8")
                 try:
-                    errors = VALIDATOR.validate(fixture, tracked_files=[])
+                    errors = fast_validate(fixture)
                 except Exception as exc:  # pragma: no cover - documents the regression
                     self.fail(f"non-object marketplace payload raised {type(exc).__name__}: {exc}")
                 self.assertIsInstance(errors, list)
@@ -1652,7 +1686,7 @@ class RepositoryValidationTests(unittest.TestCase):
                 manifest_path = fixture / "plugins" / "coding-workflows" / ".codex-plugin" / "plugin.json"
                 manifest_path.write_text(json.dumps(payload), encoding="utf-8")
                 try:
-                    errors = VALIDATOR.validate(fixture, tracked_files=[])
+                    errors = fast_validate(fixture)
                 except Exception as exc:  # pragma: no cover - documents the regression
                     self.fail(f"non-object plugin manifest raised {type(exc).__name__}: {exc}")
                 self.assertIsInstance(errors, list)
@@ -1668,7 +1702,7 @@ class RepositoryValidationTests(unittest.TestCase):
         temporary, fixture = self.make_fixture()
         self.addCleanup(temporary.cleanup)
         mutate(fixture)
-        errors = VALIDATOR.validate(fixture, tracked_files=[])
+        errors = fast_validate(fixture)
         self.assertTrue(
             any(
                 "source" in error.casefold()
@@ -1704,7 +1738,7 @@ class RepositoryValidationTests(unittest.TestCase):
             (bulk / f"ignored-{index}.bin").write_bytes(b"x")
 
         with mock.patch.object(VALIDATOR, "MAX_VALIDATED_ENTRIES", baseline_entries + 3):
-            errors = VALIDATOR.validate(fixture, tracked_files=[])
+            errors = fast_validate(fixture)
 
         self.assertTrue(any("entry validation limit" in error for error in errors), errors)
 
@@ -1717,7 +1751,7 @@ class RepositoryValidationTests(unittest.TestCase):
             (agent_root / f"extra-{index}.toml").write_text("name = 'extra'\n", encoding="utf-8")
 
         with mock.patch.object(VALIDATOR, "MAX_VALIDATED_ENTRIES", baseline_entries + 2):
-            errors = VALIDATOR.validate(fixture, tracked_files=[])
+            errors = fast_validate(fixture)
 
         self.assertEqual(
             errors,
@@ -1741,7 +1775,7 @@ class RepositoryValidationTests(unittest.TestCase):
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
         try:
-            errors = VALIDATOR.validate(fixture, tracked_files=[])
+            errors = fast_validate(fixture)
         except RuntimeError as exc:  # pragma: no cover - documents the regression
             self.fail(f"looped skills path raised RuntimeError: {exc}")
         self.assertTrue(any("skills path" in error for error in errors), errors)
@@ -1859,7 +1893,7 @@ class RepositoryValidationTests(unittest.TestCase):
             link.symlink_to(outside)
         except (NotImplementedError, OSError) as exc:
             self.skipTest(f"symlink creation is unavailable or denied: {exc}")
-        errors = VALIDATOR.validate(fixture, tracked_files=[])
+        errors = fast_validate(fixture)
         self.assertTrue(any("Generated package output" in error and "symlink" in error for error in errors), errors)
 
     def test_rejects_claude_app_package_set_mismatch(self) -> None:
@@ -2237,7 +2271,7 @@ class RepositoryValidationTests(unittest.TestCase):
 
         self.assert_fixture_error(retain, "reviewed compileall command")
         self.assert_fixture_error(rename, "name must be coding-agents")
-        errors = VALIDATOR.validate(ROOT, tracked_files=[])
+        errors = fast_validate(ROOT)
         self.assertFalse([error for error in errors if "Cursor environment" in error], errors)
 
     def test_repository_scan_detects_stale_markers_and_secret_canaries_without_echoing_values(self) -> None:
@@ -2254,7 +2288,7 @@ class RepositoryValidationTests(unittest.TestCase):
         temporary, fixture = self.make_fixture()
         self.addCleanup(temporary.cleanup)
         mutate(fixture)
-        errors = VALIDATOR.validate(fixture, tracked_files=[])
+        errors = fast_validate(fixture)
         self.assertTrue(any("Stale marker" in error for error in errors), errors)
         self.assertTrue(any("Secret material detected" in error for error in errors), errors)
         encoded = json.dumps(errors)
@@ -2320,6 +2354,7 @@ class RepositoryValidationTests(unittest.TestCase):
         self.assert_fixture_error(mutate, "must not declare extensions")
 
     def test_agent_plugins_ignores_nested_skill_md(self) -> None:
+        # Intentionally slow: real end-to-end build + validate() across families.
         temporary, fixture = self.make_fixture()
         self.addCleanup(temporary.cleanup)
         nested = fixture / "plugins" / "coding-workflows" / "skills" / "repo-xray" / "nested"
@@ -3100,6 +3135,7 @@ class RepositoryValidationTests(unittest.TestCase):
         with zipfile.ZipFile(fixture / "plugins/coding-workflows/claude-app/dist/context-first.zip") as archive:
             self.assertIn("context-first/references/nested/child.md", archive.namelist())
             self.assertIn(b"../evidence-contract.md", archive.read("context-first/references/nested/child.md"))
+        # Intentionally slow: real end-to-end build + validate() across families.
         self.assertEqual([], VALIDATOR.validate(fixture, tracked_files=[]))
         self.assertEqual([], validate_packages(fixture))
         self.assertEqual([], claude_app_validate_packages(fixture))

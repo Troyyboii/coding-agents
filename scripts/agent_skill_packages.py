@@ -53,6 +53,14 @@ GEMINI_DIST = Path(PLUGIN_ROOT) / "gemini" / "dist"
 KIMI_DIST = Path(PLUGIN_ROOT) / "kimi" / "dist"
 OUTPUTS = (PORTABLE_DIST, GEMINI_DIST, KIMI_DIST)
 
+# TEST-ONLY seam shared with repository_inventory: skip the reproduction
+# comparison (a full rebuild) when the caller passes check_currentness=False.
+# None and True keep full checking.
+
+
+def _package_currentness_enabled(check_currentness: bool | None) -> bool:
+    return check_currentness is not False
+
 
 def _preflight_output_destinations(root: Path = ROOT) -> None:
     destinations: list[Path] = []
@@ -396,7 +404,15 @@ def _validate_output(path: Path, kind: str, version: str, names: list[str], erro
     return len(errors) == initial_error_count
 
 
-def validate_packages(root: Path = ROOT) -> list[str]:
+def validate_packages(root: Path = ROOT, *, check_currentness: bool | None = None) -> list[str]:
+    """Validate portable, Gemini, and Kimi package outputs.
+
+    Structural checks (manifests, skill sets, references, debris) always run.
+    The reproduction comparison rebuilds every package family, so callers
+    whose subject is unrelated to package currency may pass
+    check_currentness=False. The default keeps full validation.
+    """
+
     errors: list[str] = []
     try:
         version = load_plugin_version(root)
@@ -428,7 +444,7 @@ def validate_packages(root: Path = ROOT) -> list[str]:
             comparable[path] = False
             continue
         comparable[path] = _validate_output(package, kind, version, names, errors)
-    if any(comparable.values()):
+    if any(comparable.values()) and _package_currentness_enabled(check_currentness):
         with tempfile.TemporaryDirectory() as temporary:
             try:
                 expected = _render_packages(root, Path(temporary))

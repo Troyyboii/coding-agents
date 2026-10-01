@@ -18,6 +18,12 @@ SKILLS = ROOT / "plugins" / "coding-workflows" / "skills"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
+# Never write bytecode next to the sources under test. Running skill helpers
+# that live inside generated package trees would otherwise drop
+# __pycache__/*.pyc into those outputs and contaminate package-currentness
+# validation (forbidden debris / stale output).
+sys.dont_write_bytecode = True
+
 
 def load_module(name: str, path: Path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -115,11 +121,39 @@ def make_git_repo(testcase: unittest.TestCase, files: dict[str, str] | None = No
 
 def run_python(script: Path, *args: str, cwd: Path | None = None, env: dict[str, str] | None = None,
                timeout: int = 120) -> subprocess.CompletedProcess[str]:
+    run_env = dict(env) if env is not None else dict(os.environ)
+    # Keep helper execution from writing __pycache__/.pyc into generated
+    # package trees (see sys.dont_write_bytecode above).
+    run_env["PYTHONDONTWRITEBYTECODE"] = "1"
     return subprocess.run(
-        [sys.executable, str(script), *args],
+        [sys.executable, "-B", str(script), *args],
         cwd=cwd,
-        env=env,
+        env=run_env,
         capture_output=True,
         text=True,
         timeout=timeout,
     )
+
+
+def fast_validate(fixture: Path, tracked_files: list[str] | None = None):
+    """Run the repository validator without generated-package rebuilds.
+
+    TEST-ONLY fast path for tests whose subject is unrelated to package
+    currency. Structural package checks still run; only the rebuild
+    comparisons are skipped. Package integration tests must use
+    VALIDATOR.validate() with the default enabled checks.
+    """
+
+    return VALIDATOR.validate(
+        fixture,
+        tracked_files=[] if tracked_files is None else tracked_files,
+        check_generated_packages=False,
+    )
+
+
+def fast_inventory(fixture: Path):
+    """Collect inventory without generated-package rebuilds (TEST-ONLY)."""
+
+    from repository_inventory import collect_inventory
+
+    return collect_inventory(fixture, check_generated_packages=False)

@@ -376,6 +376,16 @@ MAX_VALIDATED_TOTAL_BYTES = 20_000_000
 MAX_VALIDATED_DIRECTORIES = 1_000
 MAX_VALIDATED_ENTRIES = 5_000
 
+# TEST-ONLY seam: generated-package currentness checks rebuild every package
+# family, so each validate() call costs ~10-20s. Tests whose subject is
+# unrelated to package currency may pass check_generated_packages=False.
+# None and True keep full validation. Structural package checks still run on
+# the fast path; only the rebuild comparisons are skipped.
+
+
+def _package_currentness_enabled(check_generated_packages: bool | None) -> bool:
+    return check_generated_packages is not False
+
 
 def _unquote_yaml_scalar(value: str) -> str:
     value = value.strip()
@@ -1650,7 +1660,12 @@ def _tracked_files(root: Path) -> tuple[list[str], str | None]:
     return list(filter(None, tracked)), None
 
 
-def validate(root: Path = ROOT, *, tracked_files: Iterable[str] | None = None) -> list[str]:
+def validate(
+    root: Path = ROOT,
+    *,
+    tracked_files: Iterable[str] | None = None,
+    check_generated_packages: bool | None = None,
+) -> list[str]:
     errors: list[str] = []
     explicit_tracked_files = tracked_files is not None
     if explicit_tracked_files:
@@ -1892,7 +1907,9 @@ def validate(root: Path = ROOT, *, tracked_files: Iterable[str] | None = None) -
         pass
 
     errors.extend(validate_claude_app_packages(root))
-    errors.extend(validate_agent_skill_packages(root))
+    errors.extend(
+        validate_agent_skill_packages(root, check_currentness=_package_currentness_enabled(check_generated_packages))
+    )
     try:
         claude_app_manifest = load_claude_app_manifest(root)
         expected_claude_app_names = set(active_claude_app_skills(root, claude_app_manifest))
@@ -2097,6 +2114,7 @@ def validate(root: Path = ROOT, *, tracked_files: Iterable[str] | None = None) -
             reserve_file=reserve_file,
             repository_files=repository_files,
             repository_directories=repository_directories,
+            check_generated_packages=check_generated_packages,
         )
     except (KeyError, OSError, ValueError, json.JSONDecodeError, tomllib.TOMLDecodeError) as exc:
         errors.append(f"Inventory collection failed: {exc}")

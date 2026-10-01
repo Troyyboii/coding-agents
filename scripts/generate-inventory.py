@@ -9,13 +9,18 @@ from pathlib import Path
 from repository_inventory import ROOT, collect_inventory, render_inventory, require_repository_path
 
 
-def generate_inventory(root: Path = ROOT, *, check: bool = False) -> tuple[bool, Path]:
+def generate_inventory(
+    root: Path = ROOT,
+    *,
+    check: bool = False,
+    check_generated_packages: bool | None = None,
+) -> tuple[bool, Path]:
     """Generate inventory for root, or return whether its checked-in copy is current."""
 
     output_path = root / "docs" / "inventory.md"
     require_repository_path(output_path.parent, root, label="Inventory output directory")
     require_repository_path(output_path, root, label="Inventory output file")
-    expected = render_inventory(collect_inventory(root))
+    expected = render_inventory(collect_inventory(root, check_generated_packages=check_generated_packages))
     if check:
         actual = output_path.read_text(encoding="utf-8") if output_path.exists() else ""
         return actual == expected, output_path

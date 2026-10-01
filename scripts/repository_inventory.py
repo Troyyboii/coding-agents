@@ -43,6 +43,12 @@ PLUGIN_SHARED_ROOT = ("plugins", "coding-workflows", "references")
 # one helper path and names the only executables it may start: "git" means argv
 # lists whose first element is the literal "git"; "approved-plan" additionally
 # allows the exact argv of a validated, user-authorized proof plan.
+#
+# TEST-ONLY seam: generated-package currentness checks rebuild every package
+# family from scratch, which makes each validate()/collect_inventory() call
+# cost ~10-20s. Ordinary validator tests do not need that proof, so they may
+# pass check_generated_packages=False. The default (None) keeps full
+# validation. Dedicated package integration tests keep the default enabled.
 HELPER_SUBPROCESS_POLICY: dict[str, tuple[str, ...]] = {
     "session-checkpoint/scripts/checkpoint.py": ("git",),
     "public-release-audit/scripts/release_scan.py": ("git",),
@@ -208,6 +214,16 @@ def validate_excluded_skill_names(canonical_names: set[str], excluded: object) -
     return set(excluded)
 
 
+def package_currentness_enabled(check_generated_packages: bool | None) -> bool:
+    """Return whether generated-package currentness checks must run.
+
+    None and True keep full checking; only an explicit False skips the
+    expensive reproduction/currentness comparison.
+    """
+
+    return check_generated_packages is not False
+
+
 def _require_current_generated_packages(root: Path) -> None:
     from agent_skill_packages import packages_are_current as agent_packages_are_current
     from agent_skill_packages import validate_packages as validate_agent_packages
@@ -259,6 +275,7 @@ def collect_inventory(
     reserve_file: Callable[[Path], bool] | None = None,
     repository_files: list[Path] | None = None,
     repository_directories: list[Path] | None = None,
+    check_generated_packages: bool | None = None,
 ) -> dict[str, Any]:
     def prepare_file(path: Path, *, label: str) -> Path:
         require_repository_path(path, root, label=label)
@@ -313,7 +330,8 @@ def collect_inventory(
             }
         )
 
-    _require_current_generated_packages(root)
+    if package_currentness_enabled(check_generated_packages):
+        _require_current_generated_packages(root)
 
     agents: list[dict[str, Any]] = []
     agent_root = root / ".codex" / "agents"

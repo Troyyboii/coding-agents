@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import sys
 import textwrap
 import unittest
 import zipfile
 from pathlib import Path
 
 from repo_support import ROOT, SKILLS, VALIDATOR, make_repo_fixture, run_python, temp_dir
+
+# Never write bytecode next to the sources under test: executing helpers that
+# live inside generated package trees must not drop __pycache__/*.pyc into
+# those outputs and contaminate package-currentness validation.
+sys.dont_write_bytecode = True
 
 import agent_skill_packages
 import claude_app_packages
@@ -160,7 +166,8 @@ class HelperLayoutTests(unittest.TestCase):
         return skill
 
     def errors_for(self, fixture: Path) -> list[str]:
-        return VALIDATOR.validate(fixture, tracked_files=[])
+        # TEST-ONLY fast path: subject is helper layout/policy, not package currency.
+        return VALIDATOR.validate(fixture, tracked_files=[], check_generated_packages=False)
 
     def test_compliant_helper_layout_is_accepted(self) -> None:
         fixture = make_repo_fixture(self)
@@ -254,12 +261,13 @@ class HelperLayoutTests(unittest.TestCase):
         with zipfile.ZipFile(crlf_claude / "repo-xray.zip") as archive:
             self.assertEqual(source, archive.read("repo-xray/references/sharedmod.py"))
         shared.write_bytes(source)
-        errors = VALIDATOR.validate(fixture, tracked_files=[])
+        # Fast path: component-layout checks are structural, not currency checks.
+        errors = VALIDATOR.validate(fixture, tracked_files=[], check_generated_packages=False)
         self.assertFalse(any("component path" in e for e in errors), errors)
         nested = base / "gemini" / "dist" / "skills" / "repo-xray" / "scripts" / "extra" / "x.py"
         nested.parent.mkdir()
         nested.write_text('"""Doc."""\n', encoding="utf-8")
-        errors = VALIDATOR.validate(fixture, tracked_files=[])
+        errors = VALIDATOR.validate(fixture, tracked_files=[], check_generated_packages=False)
         self.assertTrue(any("forbidden component path" in e and "extra/x.py" in e for e in errors), errors)
 
     def test_inventory_lists_helpers_with_their_subprocess_policy(self) -> None:
@@ -268,7 +276,8 @@ class HelperLayoutTests(unittest.TestCase):
         work_mode_packages.build_packages(fixture)
         claude_app_packages.build_packages(fixture)
         agent_skill_packages.build_packages(fixture)
-        inventory = collect_inventory(fixture)
+        # Fast path: subject is helper inventory content, not package currency.
+        inventory = collect_inventory(fixture, check_generated_packages=False)
         paths = {item["path"]: item for item in inventory["helpers"]}
         self.assertEqual("", paths["plugins/coding-workflows/skills/repo-xray/scripts/probe.py"]["subprocess"])
         self.assertTrue(paths["plugins/coding-workflows/references/sharedmod.py"]["shared"])
@@ -341,12 +350,13 @@ class LedgerTestDiscoveryTests(unittest.TestCase):
         cells[8] = f"Covered by `{probe}`."
         lines[index] = " | ".join(cells)
         ledger.write_text("\n".join(lines), encoding="utf-8")
-        errors = VALIDATOR.validate(fixture, tracked_files=[])
+        # Fast path: subject is ledger/test discovery, not package currency.
+        errors = VALIDATOR.validate(fixture, tracked_files=[], check_generated_packages=False)
         self.assertTrue(any("AUTH-07 names missing tests" in e for e in errors), errors)
         (fixture / "tests" / "test_ledger_probe.py").write_text(
             f'"""Probe."""\n\n\ndef {probe}():\n    pass\n', encoding="utf-8"
         )
-        errors = VALIDATOR.validate(fixture, tracked_files=[])
+        errors = VALIDATOR.validate(fixture, tracked_files=[], check_generated_packages=False)
         self.assertFalse(any("AUTH-07" in e for e in errors), errors)
 
 
