@@ -1278,8 +1278,8 @@ class RoutingEvaluationTests(unittest.TestCase):
         data = load_eval_data()
         self.assertEqual([], validate_eval_data(data, EXPECTED_SKILLS))
         cases = select_cases(data)
-        self.assertEqual(171, len(cases))
-        self.assertEqual(171, len({case["id"] for case in cases}))
+        self.assertEqual(172, len(cases))
+        self.assertEqual(172, len({case["id"] for case in cases}))
 
     def test_routing_case_fields_are_closed(self) -> None:
         data = load_eval_data()
