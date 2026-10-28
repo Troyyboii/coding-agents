@@ -87,7 +87,14 @@
           "expected_behavior": "Produce concise natural prose using only supplied facts."
         },
         {
-          "id": "anti-slop-negative-1",
+         "id": "anti-slop-direct-2",
+         "kind": "direct",
+         "prompt": "Koristi anti-slop i prepravi ovaj hrvatski tekst da ne zvuči kao AI, ali zadrži moj ton.",
+         "expected_skill": "anti-slop",
+         "expected_behavior": "Apply Croatian slop lists, kancelarija traps and grammar-trap checks from the hr-lexicon reference while preserving voice and facts."
+        },
+        {
+         "id": "anti-slop-negative-1",
           "kind": "negative",
           "prompt": "Research whether these statistics are current and cite the sources.",
           "expected_skill": null,
