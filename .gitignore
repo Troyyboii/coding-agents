@@ -129,3 +129,6 @@ repomix-output.*
 
 # Project-scoped Codex home (config and plugin cache)
 .codex-home/
+
+# Local CommandCode agent state (settings and taste files)
+.commandcode/
