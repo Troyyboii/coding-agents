@@ -43,7 +43,7 @@ No unreleased changes yet.
 
 ### Fixed
 
-- The `anti-slop` description contained a `: ` sequence that made its YAML frontmatter
+- The `anti-slop` description contained a colon followed by a space, which made its YAML frontmatter
   unparseable, so strict hosts loaded the skill with empty metadata. The wording no
   longer uses a colon; all generated packages are regenerated.
 - Version-dependent repository tests read the canonical plugin version instead of
