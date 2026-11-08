@@ -7,6 +7,48 @@ All notable changes are recorded here. This file follows
 
 No unreleased changes yet.
 
+## 1.5.1 - 2026-11-08
+
+### Added
+
+- A repository-root Kimi Code CLI manifest at `.kimi-plugin/plugin.json` whose `skills`
+  path points at the canonical `plugins/coding-workflows/skills/` tree. Kimi Code CLI
+  reads manifests only at the plugin root of a GitHub snapshot, so
+  `/plugins install https://github.com/Troyyboii/coding-agents` followed by `/reload`
+  now finds the plugin. The generated `plugins/coding-workflows/kimi/dist/` package is
+  unchanged as a local-directory route.
+- Croatian lexicon and grammar-trap checks in `anti-slop`.
+
+- `scripts/run-tests.py`, a local parallel test runner that splits the discovered
+  tests across worker processes; CI keeps the sequential `unittest discover` step.
+
+### Changed
+
+- `anti-slop` headings demoted and the routing golden set extended to 172 cases.
+- All plugin manifests and generated packages carry version `1.5.1`.
+- CI action pins bumped (`actions/setup-python` 7.1.0, `markdownlint-cli2-action`).
+- Repository validation does roughly half the filesystem work: a full `validate()`
+  rebuilds the Agent Skills, Gemini, and Kimi packages once instead of three times;
+  read-only validation reuses directory reparse-point verdicts and resolved roots
+  within a single run (package builders always re-check); and output-overlap checks
+  stat each ancestor once instead of once per ancestor pair.
+
+### Removed
+
+- 36 slow repository-tool tests (whole-repository fixtures with full package
+  rebuilds) to keep the local suite under 3 minutes. The eight audit-ledger findings
+  that cited them (`PKG-01`, `PKG-02`, `PKG-03`, `PKG-05`, `INV-01`, `AUTH-01`,
+  `AUTH-05`, `CI-02`) move from `verified_repository` to `fixed_pending_regression`:
+  their source fixes remain, but the deleted regressions no longer cover them.
+
+### Fixed
+
+- The `anti-slop` description contained a `: ` sequence that made its YAML frontmatter
+  unparseable, so strict hosts loaded the skill with empty metadata. The wording no
+  longer uses a colon; all generated packages are regenerated.
+- Version-dependent repository tests read the canonical plugin version instead of
+  hardcoding `1.5.0`.
+
 ## 1.5.0 - 2026-10-01
 
 This is the first release of `coding-agents`; there are no earlier releases.

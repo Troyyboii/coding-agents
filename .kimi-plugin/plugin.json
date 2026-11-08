@@ -1,0 +1,10 @@
+{
+  "name": "coding-workflows",
+  "version": "1.5.1",
+  "description": "Evidence-first repository, research, debugging, review, verification, testing, design, browser, and writing workflows.",
+  "skills": "./plugins/coding-workflows/skills/",
+  "interface": {
+    "displayName": "Coding Workflows",
+    "shortDescription": "Evidence-first coding-agent workflows"
+  }
+}

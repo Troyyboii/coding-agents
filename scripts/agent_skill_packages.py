@@ -9,7 +9,14 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from repository_inventory import ROOT, parse_skill_frontmatter, require_repository_path, resolve_within
+from repository_inventory import (
+    ROOT,
+    parse_skill_frontmatter,
+    require_repository_path,
+    resolve_within,
+    with_fresh_path_checks,
+    with_path_check_cache,
+)
 from work_mode_packages import (
     DEBRIS_NAMES,
     DEBRIS_SUFFIXES,
@@ -404,6 +411,7 @@ def _validate_output(path: Path, kind: str, version: str, names: list[str], erro
     return len(errors) == initial_error_count
 
 
+@with_path_check_cache
 def validate_packages(root: Path = ROOT, *, check_currentness: bool | None = None) -> list[str]:
     """Validate portable, Gemini, and Kimi package outputs.
 
@@ -457,6 +465,7 @@ def validate_packages(root: Path = ROOT, *, check_currentness: bool | None = Non
     return errors
 
 
+@with_fresh_path_checks
 def build_packages(root: Path = ROOT) -> None:
     _preflight_output_destinations(root)
     with tempfile.TemporaryDirectory() as temporary:

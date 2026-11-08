@@ -1,6 +1,6 @@
 ---
 name: anti-slop
-description: Edit, rewrite, draft, or critique prose to remove AI-shaped filler, cliches, padded structure, and generic corporate or assistant voice while preserving meaning, technical detail, tone, humour, dialect, force, and individual voice. Covers English and Croatian (including Croatian grammar-trap checks: agreement, case government, clitic placement). Use when the user asks to improve writing, make it less AI-sounding, or produce natural concise prose. Do not use for ordinary conversation, code, literal translation, factual verification, research, or verbatim text; a composite task may gather or verify facts separately before this editing pass.
+description: Edit, rewrite, draft, or critique prose to remove AI-shaped filler, cliches, padded structure, and generic corporate or assistant voice while preserving meaning, technical detail, tone, humour, dialect, force, and individual voice. Covers English and Croatian (including Croatian grammar-trap checks for agreement, case government, and clitic placement). Use when the user asks to improve writing, make it less AI-sounding, or produce natural concise prose. Do not use for ordinary conversation, code, literal translation, factual verification, research, or verbatim text; a composite task may gather or verify facts separately before this editing pass.
 ---
 
 # Anti-Slop

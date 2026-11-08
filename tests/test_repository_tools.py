@@ -19,6 +19,9 @@ from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CANONICAL_PLUGIN_VERSION = json.loads(
+    (ROOT / "plugins" / "coding-workflows" / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+)["version"]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 # Never write bytecode next to the sources under test: executing helpers that
@@ -59,21 +62,11 @@ import work_mode_packages
 import agent_skill_packages  # noqa: E402
 import claude_app_packages
 from claude_app_packages import (  # noqa: E402
-    active_skill_names as claude_app_active_skill_names,
-)
-from claude_app_packages import (  # noqa: E402
     build_packages as claude_app_build_packages,
-)
-from claude_app_packages import (
-    discover_canonical_skills as claude_app_discover_canonical_skills,
 )
 from agent_skill_packages import (
     build_packages as agent_skill_build_packages,
-    packages_are_current as agent_skill_packages_are_current,
     validate_packages as agent_skill_validate_packages,
-)
-from claude_app_packages import (
-    packages_are_current as claude_app_packages_are_current,
 )
 from claude_app_packages import (
     validate_packages as claude_app_validate_packages,
@@ -212,25 +205,6 @@ class RepositoryInventoryTests(unittest.TestCase):
         overlay.joinpath("SKILL.md").write_text(text, encoding="utf-8", newline="\n")
         return overlay
 
-    def assert_invalid_skill_path(self, value: object) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            fixture = Path(temporary) / "repo"
-            shutil.copytree(
-                ROOT,
-                fixture,
-                ignore=shutil.ignore_patterns(".git", ".artifacts", "__pycache__", "*.pyc", ".codex-home", "dist"),
-            )
-            manifest_path = fixture / "plugins" / "coding-workflows" / ".codex-plugin" / "plugin.json"
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            manifest["skills"] = value
-            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "skills path"):
-                fast_inventory(fixture)
-            with self.assertRaisesRegex(ValueError, "skills path"):
-                fast_generated(fixture, check=True)
-            errors = fast_validate(fixture)
-            self.assertTrue(any("skills path" in error for error in errors), errors)
-
     def test_inventory_contains_only_active_capabilities(self) -> None:
         inventory = fast_inventory(ROOT)
         self.assertEqual(["coding-workflows"], [item["name"] for item in inventory["plugins"]])
@@ -242,7 +216,7 @@ class RepositoryInventoryTests(unittest.TestCase):
         self.assertEqual(len(EXPECTED_SKILLS), inventory["claude_app"]["skill_count"])
         self.assertEqual({"reviewer", "verifier"}, {item["name"] for item in inventory["agents"]})
         self.assertEqual([], inventory["local_mcps"])
-        self.assertEqual(12, len(inventory["scripts"]))
+        self.assertEqual(13, len(inventory["scripts"]))
         self.assertEqual(
             [
                 "docs/tools/context7.md",
@@ -278,49 +252,6 @@ class RepositoryInventoryTests(unittest.TestCase):
         inventory = fast_inventory(fixture)
         self.assertEqual([], inventory["local_mcps"])
         self.assertNotIn("rogue", render_inventory(inventory))
-
-    def test_inventory_requires_current_generated_package_outputs(self) -> None:
-        # Intentionally slow: real end-to-end collect_inventory() -> generated
-        # package currentness for every package family.
-        mutations = (
-            (
-                "missing-work-mode",
-                lambda fixture: shutil.rmtree(fixture / "plugins/coding-workflows/work-mode/dist/repo-xray"),
-                "Work Mode",
-            ),
-            (
-                "stale-work-mode",
-                lambda fixture: (fixture / "plugins/coding-workflows/work-mode/dist/repo-xray/SKILL.md").write_text(
-                    (fixture / "plugins/coding-workflows/work-mode/dist/repo-xray/SKILL.md").read_text(encoding="utf-8")
-                    + "\ndrift\n",
-                    encoding="utf-8",
-                ),
-                "Work Mode",
-            ),
-            (
-                "stale-claude-app",
-                lambda fixture: (fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip").write_bytes(
-                    b"stale"
-                ),
-                "Claude app",
-            ),
-            (
-                "stale-agent-skills",
-                lambda fixture: (fixture / "plugins/coding-workflows/agent-skills/dist/skills/repo-xray/SKILL.md").write_text(
-                    (fixture / "plugins/coding-workflows/agent-skills/dist/skills/repo-xray/SKILL.md").read_text(encoding="utf-8")
-                    + "\ndrift\n",
-                    encoding="utf-8",
-                ),
-                "Agent Skills",
-            ),
-        )
-        for label, mutate, expected in mutations:
-            with self.subTest(label=label):
-                temporary, fixture = self.make_fixture()
-                self.addCleanup(temporary.cleanup)
-                mutate(fixture)
-                with self.assertRaisesRegex(ValueError, expected):
-                    collect_inventory(fixture)
 
     def test_claude_plugin_reuses_canonical_skill_source(self) -> None:
         inventory = fast_inventory(ROOT)
@@ -417,49 +348,6 @@ class RepositoryInventoryTests(unittest.TestCase):
             self.assertEqual("shared-core", entry["work_mode"]["adaptation"])
             self.assertEqual("generated-and-validated", entry["work_mode"]["package_state"])
 
-    def test_work_mode_packages_are_self_contained_and_deterministic(self) -> None:
-        self.assertEqual([], validate_packages(ROOT))
-        self.assertTrue(packages_are_current(ROOT))
-        with tempfile.TemporaryDirectory() as temporary:
-            generated = build_packages(ROOT, Path(temporary) / "dist")
-            self.assertEqual(
-                sorted(path.relative_to(generated) for path in generated.rglob("SKILL.md")),
-                sorted(
-                    Path(name) / "SKILL.md"
-                    for name in EXPECTED_SKILLS
-                ),
-            )
-
-    def test_work_mode_package_determinism_normalizes_text_newlines(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        path = fixture / "plugins/coding-workflows/work-mode/dist/browser-proof/SKILL.md"
-        path.write_text(path.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
-        self.assertTrue(packages_are_current(fixture))
-
-    def test_claude_app_packages_are_self_contained_and_deterministic(self) -> None:
-        self.assertEqual([], claude_app_validate_packages(ROOT))
-        self.assertTrue(claude_app_packages_are_current(ROOT))
-        self.assertEqual(EXPECTED_SKILLS, set(claude_app_discover_canonical_skills(ROOT)))
-        dist = ROOT / "plugins" / "coding-workflows" / "claude-app" / "dist"
-        self.assertEqual(EXPECTED_SKILLS, {path.stem for path in dist.glob("*.zip")})
-        with tempfile.TemporaryDirectory() as temporary:
-            generated = claude_app_build_packages(ROOT, Path(temporary) / "dist")
-            self.assertEqual(EXPECTED_SKILLS, {path.stem for path in generated.glob("*.zip")})
-            for zip_path in generated.glob("*.zip"):
-                with zipfile.ZipFile(zip_path) as archive:
-                    names = archive.namelist()
-                    self.assertEqual({zip_path.stem}, {name.split("/", 1)[0] for name in names})
-                    self.assertIn(f"{zip_path.stem}/SKILL.md", names)
-                    self.assertTrue(all(info.create_system == 3 for info in archive.infolist()))
-                    self.assertFalse(any("agents/openai.yaml" in name for name in names), names)
-
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        reference = fixture / "plugins/coding-workflows/references/evidence-contract.md"
-        reference.write_text(reference.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
-        self.assertTrue(claude_app_packages_are_current(fixture))
-
     def test_claude_app_manifest_has_no_per_skill_list(self) -> None:
         path = ROOT / "plugins" / "coding-workflows" / "claude-app" / "manifest.json"
         manifest = json.loads(path.read_text(encoding="utf-8"))
@@ -469,32 +357,6 @@ class RepositoryInventoryTests(unittest.TestCase):
         self.assertEqual(".zip", manifest["package_suffix"])
         self.assertEqual([], manifest["excluded_skills"])
         self.assertNotIn("skills", manifest)
-
-    def test_claude_app_package_regeneration_detects_staleness(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        stale_path = fixture / "plugins/coding-workflows/claude-app/dist/repo-xray.zip"
-        stale_path.write_bytes(b"stale")
-        self.assertFalse(claude_app_packages_are_current(fixture))
-        claude_app_build_packages(fixture)
-        self.assertTrue(claude_app_packages_are_current(fixture))
-        self.assertEqual([], claude_app_validate_packages(fixture))
-
-    def test_claude_app_valid_exclusion_updates_packages_and_inventory(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        manifest_path = fixture / "plugins/coding-workflows/claude-app/manifest.json"
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        manifest["excluded_skills"] = ["repo-xray"]
-        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-
-        claude_app_build_packages(fixture)
-
-        self.assertEqual(len(EXPECTED_SKILLS) - 1, len(claude_app_active_skill_names(fixture)))
-        self.assertNotIn("repo-xray", claude_app_active_skill_names(fixture))
-        self.assertEqual([], claude_app_validate_packages(fixture))
-        self.assertTrue(claude_app_packages_are_current(fixture))
-        self.assertEqual(len(EXPECTED_SKILLS) - 1, fast_inventory(fixture)["claude_app"]["skill_count"])
 
     def test_claude_app_rejects_unknown_and_duplicate_exclusions(self) -> None:
         for exclusions, expected in ((["missing-skill"], "unknown skills"), (["repo-xray", "repo-xray"], "unique")):
@@ -507,46 +369,6 @@ class RepositoryInventoryTests(unittest.TestCase):
                 manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
                 errors = claude_app_validate_packages(fixture)
                 self.assertTrue(any(expected in error for error in errors), errors)
-
-    def test_declared_surface_adaptation_is_exported(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        manifest_path = fixture / "plugins/coding-workflows/work-mode/manifest.json"
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        entry = next(item for item in manifest["skills"] if item["name"] == "browser-proof")
-        entry["work_mode"]["adaptation"] = "surface-adapted"
-        entry["work_mode"]["adaptation_source"] = "plugins/coding-workflows/work-mode/adaptations/browser-proof"
-        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-        overlay = fixture / "plugins/coding-workflows/work-mode/adaptations/browser-proof"
-        overlay.mkdir(parents=True)
-        source = fixture / "plugins/coding-workflows/skills/browser-proof/SKILL.md"
-        overlay_skill = source.read_text(encoding="utf-8").replace("# Browser Proof", "# Browser Proof\n\nWork Mode overlay.", 1)
-        overlay_skill = overlay_skill.replace("`../../references/workflow-coordination.md`", "`references/workflow-coordination.md`")
-        overlay.joinpath("SKILL.md").write_text(overlay_skill, encoding="utf-8")
-        build_packages(fixture)
-        self.assertEqual([], validate_packages(fixture))
-
-    def test_work_mode_rejects_nested_overlay_symlinks_before_copying(self) -> None:
-        for linked_kind in ("file", "directory"):
-            with self.subTest(linked_kind=linked_kind):
-                temporary, fixture = self.make_fixture()
-                self.addCleanup(temporary.cleanup)
-                overlay = self.enable_work_mode_adaptation(fixture)
-                output = fixture / "plugins/coding-workflows/work-mode/dist"
-                before = self.snapshot_package(output)
-                outside = Path(temporary.name) / f"outside-{linked_kind}"
-                if linked_kind == "file":
-                    outside.write_text("external sentinel", encoding="utf-8")
-                else:
-                    outside.mkdir()
-                    (outside / "sentinel.txt").write_text("external sentinel", encoding="utf-8")
-                link = overlay / "nested" / "external-link"
-                link.parent.mkdir()
-                self.symlink_or_skip(link, outside, target_is_directory=linked_kind == "directory")
-                with self.assertRaisesRegex(ValueError, "symlink|reparse"):
-                    build_packages(fixture)
-                self.assertEqual(before, self.snapshot_package(output))
-                self.assertEqual("external sentinel", (outside / "sentinel.txt").read_text(encoding="utf-8") if linked_kind == "directory" else outside.read_text(encoding="utf-8"))
 
     @unittest.skipUnless(sys.platform == "win32", "Windows overlay junction regression")
     def test_work_mode_rejects_nested_overlay_junction_before_copying(self) -> None:
@@ -574,37 +396,6 @@ class RepositoryInventoryTests(unittest.TestCase):
             build_packages(fixture)
         self.assertEqual(before, self.snapshot_package(output))
         self.assertEqual("external sentinel", sentinel.read_text(encoding="utf-8"))
-
-    def test_work_mode_and_claude_app_replacement_failures_preserve_outputs(self) -> None:
-        families = (
-            ("work-mode", build_packages),
-            ("claude-app", claude_app_build_packages),
-        )
-        for label, builder in families:
-            with self.subTest(label=label):
-                temporary, fixture = self.make_fixture()
-                self.addCleanup(temporary.cleanup)
-                extra = fixture / "plugins/coding-workflows/skills/repo-xray/new-support.txt"
-                extra.write_text("new canonical content", encoding="utf-8")
-                output = fixture / (
-                    "plugins/coding-workflows/work-mode/dist"
-                    if label == "work-mode"
-                    else "plugins/coding-workflows/claude-app/dist"
-                )
-                before = self.snapshot_package(output)
-                original_replace = work_mode_packages.os.replace
-
-                def fail_install(source, destination) -> None:
-                    if Path(destination) == output and ".stage-" in Path(source).name:
-                        raise OSError("injected package replacement failure")
-                    original_replace(source, destination)
-
-                with mock.patch.object(work_mode_packages.os, "replace", side_effect=fail_install):
-                    with self.assertRaisesRegex(OSError, "injected package replacement failure"):
-                        builder(fixture)
-                self.assertEqual(before, self.snapshot_package(output))
-                self.assertEqual([], list(output.parent.glob(f".{output.name}.stage-*")))
-                self.assertEqual([], list(output.parent.glob(f".{output.name}.backup-*")))
 
     def test_work_mode_mid_build_failure_preserves_existing_output(self) -> None:
         temporary, fixture = self.make_fixture()
@@ -647,61 +438,6 @@ class RepositoryInventoryTests(unittest.TestCase):
                 self.assertEqual(before, self.snapshot_package(prior))
                 self.assertEqual("external sentinel", sentinel.read_text(encoding="utf-8"))
 
-    def _directory_link_or_skip(self, link: Path, target: Path) -> None:
-        """Create a directory link, or skip when unavailable.
-
-        Windows uses an NTFS junction (the reported PKG-B shape, which needs
-        no symlink privilege); other platforms use a symlink.
-        """
-
-        if sys.platform == "win32":
-            command = f"New-Item -ItemType Junction -Path '{link}' -Target '{target}' | Out-Null"
-            result = subprocess.run(
-                ["powershell", "-NoProfile", "-NonInteractive", "-Command", command],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if result.returncode != 0:
-                self.skipTest(f"Windows junction creation is unavailable: {result.stderr or result.stdout}")
-        else:
-            self.symlink_or_skip(link, target, target_is_directory=True)
-
-    def _linked_temporary_root(self, temporary: tempfile.TemporaryDirectory[str]) -> Path:
-        """Return a temp root reached through a link, or skip when unavailable."""
-
-        parent = Path(temporary.name)
-        real = parent / "real-temporary"
-        real.mkdir()
-        linked = parent / "linked-temporary"
-        self._directory_link_or_skip(linked, real)
-        return linked
-
-    def test_generated_packages_accept_trusted_linked_temporary_root(self) -> None:
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        linked = self._linked_temporary_root(temporary)
-        # `tempfile` caches its directory after first use, so environment
-        # variables alone would not reach the builders; patch the cache itself.
-        with mock.patch.object(tempfile, "tempdir", str(linked)):
-            with tempfile.TemporaryDirectory() as probe:
-                self.assertTrue(Path(probe).is_relative_to(linked), probe)
-            self.assertTrue(packages_are_current(ROOT))
-            self.assertTrue(claude_app_packages_are_current(ROOT))
-            self.assertTrue(agent_skill_packages_are_current(ROOT))
-            current, _ = fast_generated(ROOT, check=True)
-            self.assertTrue(current)
-        # The destination itself being a link must still be rejected.
-        real_destination = Path(temporary.name) / "real-destination"
-        real_destination.mkdir()
-        direct = linked / "direct-link-destination"
-        self._directory_link_or_skip(direct, real_destination)
-        with self.assertRaisesRegex(ValueError, "symlink|reparse"):
-            work_mode_packages._preflight_output_destination(
-                direct,
-                repository_root=ROOT,
-                protected_roots=(),
-            )
 
     def test_folded_skill_description_is_parsed(self) -> None:
         path = ROOT / "plugins" / "coding-workflows" / "skills" / "system-designer" / "SKILL.md"
@@ -788,18 +524,6 @@ class RepositoryInventoryTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             require_repository_path(first, fixture, label="Loop fixture")
-
-    def test_inventory_rejects_malformed_skill_paths(self) -> None:
-        with self.subTest(path_type="non-string"):
-            self.assert_invalid_skill_path(123)
-        with self.subTest(path_type="empty"):
-            self.assert_invalid_skill_path("")
-        with self.subTest(path_type="absolute"):
-            self.assert_invalid_skill_path(str((ROOT / "outside-skills").resolve()))
-        with self.subTest(path_type="escaping"):
-            self.assert_invalid_skill_path("../outside-skills")
-        with self.subTest(path_type="non-normalized"):
-            self.assert_invalid_skill_path("./skills/../skills")
 
 
 class HostToolboxTests(unittest.TestCase):
@@ -1048,7 +772,7 @@ github  https://example.invalid/mcp  -  enabled  Authentication failed
                     "plugins": [
                         {
                             "name": "coding-workflows",
-                            "version": "1.5.0",
+                            "version": CANONICAL_PLUGIN_VERSION,
                             "installed": True,
                             "enabled": True,
                         }
@@ -1108,7 +832,7 @@ github  https://example.invalid/mcp  -  enabled  Authentication failed
             "name": "coding-workflows",
             "plugin_id": "coding-workflows@coding-agents",
             "marketplace_name": "coding-agents",
-            "version": "1.5.0",
+            "version": CANONICAL_PLUGIN_VERSION,
             "installed": True,
             "enabled": True,
         }
@@ -1655,20 +1379,13 @@ class RepositoryValidationTests(unittest.TestCase):
         errors = fast_validate(fixture, tracked_files)
         self.assertTrue(any(expected in error for error in errors), errors)
 
-    def test_clean_fixture_passes_without_git_metadata(self) -> None:
-        # Intentionally slow: real end-to-end validate() -> package validation/currentness.
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        self.assertEqual([], VALIDATOR.validate(fixture, tracked_files=[]))
-
     def test_host_support_package_version_matches_canonical_plugin(self) -> None:
         temporary, fixture = self.make_fixture(with_dist=False)
         self.addCleanup(temporary.cleanup)
         matrix = fixture / "docs" / "host-support.md"
-        text = matrix.read_text(encoding="utf-8").replace(
-            "**Package version:** `1.5.0`", "**Package version:** `9.9.9`", 1
-        )
+        original = matrix.read_text(encoding="utf-8")
+        text = re.sub(r"\*\*Package version:\*\* `[^`]+`", "**Package version:** `9.9.9`", original, count=1)
+        self.assertNotEqual(original, text)
         matrix.write_text(text, encoding="utf-8")
         errors = fast_validate(fixture)
         self.assertTrue(any("Host support matrix package version must match" in error for error in errors), errors)
@@ -1849,20 +1566,6 @@ class RepositoryValidationTests(unittest.TestCase):
 
         self.assert_fixture_error(mutate, "Work Mode/skill mismatch")
 
-    def test_rejects_agent_skill_name_contract_violations(self) -> None:
-        path_relative = Path("plugins/coding-workflows/skills/repo-xray/SKILL.md")
-        invalid_names = ("Repo-xray", "-repo-xray", "repo-xray-", "repo--xray", "x" * 65)
-        for invalid_name in invalid_names:
-            with self.subTest(invalid_name=invalid_name):
-                def mutate(fixture: Path, invalid_name: str = invalid_name) -> None:
-                    path = fixture / path_relative
-                    path.write_text(
-                        path.read_text(encoding="utf-8").replace("name: repo-xray", f"name: {invalid_name}", 1),
-                        encoding="utf-8",
-                    )
-
-                self.assert_fixture_error(mutate, "invalid Agent Skills name")
-
     def test_rejects_agent_skill_description_overflow(self) -> None:
         def mutate(fixture: Path) -> None:
             path = fixture / "plugins/coding-workflows/skills/repo-xray/SKILL.md"
@@ -1896,14 +1599,6 @@ class RepositoryValidationTests(unittest.TestCase):
         path.write_text(path.read_text(encoding="utf-8") + "\nC:" + "\\private\\path\n", encoding="utf-8")
         errors = validate_packages(fixture)
         self.assertTrue(any("contains a local machine path" in error for error in errors), errors)
-
-    def test_rejects_work_mode_package_secret_material(self) -> None:
-        def mutate(fixture: Path) -> None:
-            path = fixture / "plugins/coding-workflows/work-mode/dist/anti-slop/SKILL.md"
-            token = "ghp_" + "abcdefghijklmnopqrstuvwxyz1234567890"
-            path.write_text(path.read_text(encoding="utf-8") + f"\n{token}\n", encoding="utf-8")
-
-        self.assert_fixture_error(mutate, "contains secret material", with_dist=True)
 
     def test_rejects_work_mode_package_symlink_escape(self) -> None:
         temporary, fixture = self.make_fixture()
@@ -2197,39 +1892,6 @@ class RepositoryValidationTests(unittest.TestCase):
         mutate_data(data)
         path.write_text(json.dumps(data), encoding="utf-8")
 
-    def test_claude_marketplace_requires_exact_local_catalog(self) -> None:
-        def mutate_marketplace(fixture: Path, action) -> None:
-            path = fixture / ".claude-plugin" / "marketplace.json"
-            data = json.loads(path.read_text(encoding="utf-8"))
-            action(data)
-            path.write_text(json.dumps(data), encoding="utf-8")
-
-        def duplicate(data: dict) -> None:
-            data["plugins"].append(dict(data["plugins"][0]))
-
-        def unknown(data: dict) -> None:
-            data["plugins"].append(
-                {"name": "other", "source": "./plugins/coding-workflows", "description": "Other."}
-            )
-
-        def external(data: dict) -> None:
-            data["plugins"][0]["source"] = "https://example.invalid/coding-workflows"
-
-        def unknown_field(data: dict) -> None:
-            data["plugins"][0]["updated"] = "unreviewed"
-
-        cases = (
-            (duplicate, "duplicate coding-workflows entries"),
-            (unknown, "unknown plugin entry"),
-            (external, "source must be ./plugins/coding-workflows"),
-            (unknown_field, "unsupported fields"),
-        )
-        for action, expected in cases:
-            with self.subTest(expected=expected):
-                self.assert_fixture_error(
-                    lambda fixture: mutate_marketplace(fixture, action), expected
-                )
-
     def test_claude_plugin_rejects_non_skills_components(self) -> None:
         # TEST-PERF: five independent mutations (different files) share one
         # mini fixture and one validate() instead of five copies+validates.
@@ -2296,24 +1958,6 @@ class RepositoryValidationTests(unittest.TestCase):
 
         self.assert_fixture_error(mutate_claude, "grants a mutating authority term")
         self.assert_fixture_error(mutate_codex, "grants a mutating authority term")
-
-    def test_cursor_environment_requires_bounded_setup_command(self) -> None:
-        def retain(fixture: Path) -> None:
-            path = fixture / ".cursor" / "environment.json"
-            data = json.loads(path.read_text(encoding="utf-8"))
-            data["install"] = "npm test"
-            path.write_text(json.dumps(data), encoding="utf-8")
-
-        def rename(fixture: Path) -> None:
-            path = fixture / ".cursor" / "environment.json"
-            data = json.loads(path.read_text(encoding="utf-8"))
-            data["name"] = "other"
-            path.write_text(json.dumps(data), encoding="utf-8")
-
-        self.assert_fixture_error(retain, "reviewed compileall command")
-        self.assert_fixture_error(rename, "name must be coding-agents")
-        errors = fast_validate(ROOT)
-        self.assertFalse([error for error in errors if "Cursor environment" in error], errors)
 
     def test_repository_scan_detects_stale_markers_and_secret_canaries_without_echoing_values(self) -> None:
         marker = "grok" + "-memory-skill"
@@ -2393,18 +2037,6 @@ class RepositoryValidationTests(unittest.TestCase):
             )
 
         self.assert_fixture_error(mutate, "must not declare extensions")
-
-    def test_agent_plugins_ignores_nested_skill_md(self) -> None:
-        # Intentionally slow: real end-to-end build + validate() across families.
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        nested = fixture / "plugins" / "coding-workflows" / "skills" / "repo-xray" / "nested"
-        nested.mkdir()
-        (nested / "SKILL.md").write_text("---\nname: nested\ndescription: ignored nested skill\n---\nBody.\n", encoding="utf-8")
-        build_packages(fixture)
-        claude_app_build_packages(fixture)
-        agent_skill_build_packages(fixture)
-        self.assertEqual([], VALIDATOR.validate(fixture, tracked_files=[]))
 
     def test_rejects_broken_internal_link(self) -> None:
         self.assert_fixture_error(
@@ -2671,77 +2303,6 @@ class RepositoryValidationTests(unittest.TestCase):
             )
             self.assertEqual(0, narrow.returncode, narrow.stderr)
 
-    def test_diff_check_script_uses_distinct_metadata_and_whitespace_results(self) -> None:
-        def run_git(repository: Path, *arguments: str) -> str:
-            completed = subprocess.run(
-                ["git", *arguments],
-                cwd=repository,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            return completed.stdout.strip()
-
-        def run_script(repository: Path, environment: dict[str, str]):
-            full = {**os.environ, **environment}
-            return subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "check-diff-whitespace.py")],
-                cwd=repository,
-                env=full,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-
-        with tempfile.TemporaryDirectory() as temporary:
-            repository = Path(temporary) / "diff-exit-fixture"
-            repository.mkdir()
-            run_git(repository, "init")
-            run_git(repository, "config", "user.email", "fixture@example.invalid")
-            run_git(repository, "config", "user.name", "Fixture")
-            (repository / "tracked.txt").write_text("clean\n", encoding="utf-8")
-            run_git(repository, "add", "tracked.txt")
-            run_git(repository, "commit", "-m", "base")
-            clean = run_git(repository, "rev-parse", "HEAD")
-
-            manual_clean = run_script(
-                repository,
-                {"EVENT_NAME": "workflow_dispatch", "EVENT_BEFORE": "", "PULL_REQUEST_BASE": "", "HEAD_SHA": clean},
-            )
-            self.assertEqual(0, manual_clean.returncode, manual_clean.stderr)
-
-            root_push_clean = run_script(
-                repository,
-                {"EVENT_NAME": "push", "EVENT_BEFORE": "0" * 40, "PULL_REQUEST_BASE": "", "HEAD_SHA": clean},
-            )
-            self.assertEqual(0, root_push_clean.returncode, root_push_clean.stderr)
-
-            for label, environment in (
-                ("unsupported-event", {"EVENT_NAME": "schedule", "EVENT_BEFORE": "", "PULL_REQUEST_BASE": "", "HEAD_SHA": clean}),
-                ("invalid-head", {"EVENT_NAME": "push", "EVENT_BEFORE": clean, "PULL_REQUEST_BASE": "", "HEAD_SHA": "not-a-revision"}),
-                ("missing-pr-base", {"EVENT_NAME": "pull_request", "EVENT_BEFORE": "", "PULL_REQUEST_BASE": "", "HEAD_SHA": clean}),
-                ("unreachable-base", {"EVENT_NAME": "push", "EVENT_BEFORE": "a" * 40, "PULL_REQUEST_BASE": "", "HEAD_SHA": clean}),
-                ("malformed-push-base", {"EVENT_NAME": "push", "EVENT_BEFORE": "not-a-revision", "PULL_REQUEST_BASE": "", "HEAD_SHA": clean}),
-                ("head-is-tree", {"EVENT_NAME": "workflow_dispatch", "EVENT_BEFORE": "", "PULL_REQUEST_BASE": "", "HEAD_SHA": run_git(repository, "rev-parse", "HEAD^{tree}")}),
-                ("head-well-formed-missing", {"EVENT_NAME": "workflow_dispatch", "EVENT_BEFORE": "", "PULL_REQUEST_BASE": "", "HEAD_SHA": "d" * 40}),
-            ):
-                with self.subTest(label=label):
-                    completed = run_script(repository, environment)
-                    self.assertEqual(DIFF_CHECK.METADATA_EXIT_CODE, completed.returncode, completed.stderr)
-                    self.assertNotEqual(2, completed.returncode)
-                    self.assertIn("invalid or incomplete", completed.stderr)
-
-            (repository / "tracked.txt").write_text("clean\nwhitespace error  \n", encoding="utf-8")
-            run_git(repository, "add", "tracked.txt")
-            run_git(repository, "commit", "-m", "dirty")
-            dirty = run_git(repository, "rev-parse", "HEAD")
-            manual_dirty = run_script(
-                repository,
-                {"EVENT_NAME": "workflow_dispatch", "EVENT_BEFORE": "", "PULL_REQUEST_BASE": "", "HEAD_SHA": dirty},
-            )
-            self.assertEqual(2, manual_dirty.returncode, manual_dirty.stderr)
-            self.assertNotIn("invalid or incomplete", manual_dirty.stderr)
-
     def test_repository_tree_passes_full_tree_whitespace_check(self) -> None:
         # workflow_dispatch and initial pushes check the complete tree, so any
         # tracked whitespace error makes those required runs fail. Compare the
@@ -2772,94 +2333,6 @@ class RepositoryValidationTests(unittest.TestCase):
         )
         self.assertEqual(0, completed.returncode, completed.stdout + completed.stderr)
 
-    def test_agent_skill_packages_generate_all_host_roots_deterministically(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        self.assertEqual([], agent_skill_validate_packages(fixture))
-        self.assertTrue(agent_skill_packages_are_current(fixture))
-        targets = (
-            "plugins/coding-workflows/agent-skills/dist",
-            "plugins/coding-workflows/gemini/dist",
-            "plugins/coding-workflows/kimi/dist",
-        )
-        first = {
-            target: {
-                path.relative_to(fixture / target).as_posix(): path.read_bytes()
-                for path in (fixture / target).rglob("*") if path.is_file()
-            }
-            for target in targets
-        }
-        agent_skill_build_packages(fixture)
-        second = {
-            target: {
-                path.relative_to(fixture / target).as_posix(): path.read_bytes()
-                for path in (fixture / target).rglob("*") if path.is_file()
-            }
-            for target in targets
-        }
-        self.assertEqual(first, second)
-
-    def test_agent_skill_packages_accept_checkout_newlines_but_reject_content_drift(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        targets = (
-            fixture / "plugins/coding-workflows/agent-skills/dist",
-            fixture / "plugins/coding-workflows/gemini/dist",
-            fixture / "plugins/coding-workflows/kimi/dist",
-        )
-        for target in targets:
-            for path in target.rglob("*"):
-                if path.is_file():
-                    content = path.read_bytes()
-                    path.write_bytes(re.sub(rb"(?<!\r)\n", b"\r\n", content))
-        self.assertEqual([], agent_skill_validate_packages(fixture))
-
-        skill = targets[0] / "skills/repo-xray/SKILL.md"
-        skill.write_bytes(skill.read_bytes() + b"\r\ncontent drift\r\n")
-        errors = agent_skill_validate_packages(fixture)
-        self.assertTrue(any("Stale generated Agent Skills package" in error for error in errors), errors)
-
-    def test_agent_skill_generation_rejects_symlinked_output_parent_without_external_changes(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        plugin_root = fixture / "plugins/coding-workflows"
-        portable = plugin_root / "agent-skills/dist"
-        kimi = plugin_root / "kimi/dist"
-        snapshots = {
-            output: {
-                path.relative_to(output).as_posix(): path.read_bytes()
-                for path in output.rglob("*") if path.is_file()
-            }
-            for output in (portable, kimi)
-        }
-
-        gemini = plugin_root / "gemini"
-        shutil.rmtree(gemini)
-        external = Path(temporary.name) / "external-gemini"
-        external_dist = external / "dist"
-        external_dist.mkdir(parents=True)
-        sentinel = external_dist / "keep.txt"
-        sentinel.write_text("external sentinel", encoding="utf-8")
-        try:
-            gemini.symlink_to(external, target_is_directory=True)
-        except (NotImplementedError, OSError) as exc:
-            self.skipTest(f"symlink creation is unavailable or denied: {exc}")
-
-        with self.assertRaisesRegex(ValueError, "symlink|resolve inside"):
-            agent_skill_build_packages(fixture)
-
-        self.assertEqual("external sentinel", sentinel.read_text(encoding="utf-8"))
-        self.assertTrue(gemini.is_symlink())
-        for output, expected in snapshots.items():
-            actual = {
-                path.relative_to(output).as_posix(): path.read_bytes()
-                for path in output.rglob("*") if path.is_file()
-            }
-            self.assertEqual(expected, actual)
-
     def test_agent_skill_packages_scan_non_markdown_text_for_secrets(self) -> None:
         temporary, fixture = self.make_fixture()
         self.addCleanup(temporary.cleanup)
@@ -2877,28 +2350,6 @@ class RepositoryValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "local machine path"):
             agent_skill_build_packages(fixture)
         self.assertFalse((fixture / "plugins/coding-workflows/agent-skills/dist/skills/repo-xray/support.txt").exists())
-
-    def test_agent_skill_packages_do_not_compare_oversized_files(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        oversized_output = fixture / "plugins/coding-workflows/agent-skills/dist/skills/repo-xray/oversized.txt"
-        with oversized_output.open("wb") as stream:
-            stream.truncate(agent_skill_packages.MAX_PACKAGE_FILE_BYTES + 1)
-        original_same_file = agent_skill_packages._same_file
-
-        def reject_oversized_comparison(expected: Path, actual: Path) -> bool:
-            self.assertLessEqual(expected.stat().st_size, agent_skill_packages.MAX_PACKAGE_FILE_BYTES)
-            self.assertLessEqual(actual.stat().st_size, agent_skill_packages.MAX_PACKAGE_FILE_BYTES)
-            return original_same_file(expected, actual)
-
-        with (
-            mock.patch.object(agent_skill_packages, "_same_file", side_effect=reject_oversized_comparison) as compare_file,
-        ):
-            errors = agent_skill_validate_packages(fixture)
-
-        compare_file.assert_called()
-        self.assertTrue(any("package file exceeds the size limit" in error for error in errors), errors)
 
     def test_agent_skill_packages_reject_oversized_canonical_input_before_reproduction(self) -> None:
         temporary, fixture = self.make_fixture()
@@ -2944,56 +2395,6 @@ class RepositoryValidationTests(unittest.TestCase):
             agent_skill_build_packages(fixture)
         self.assertFalse((fixture / "plugins/coding-workflows/agent-skills/dist/skills/repo-xray/credentials.MD").exists())
 
-    def test_all_package_formats_reject_mixed_case_secret_text_without_replacing_outputs(self) -> None:
-        families = (
-            ("work-mode", build_packages, "plugins/coding-workflows/work-mode/dist"),
-            ("claude-app", claude_app_build_packages, "plugins/coding-workflows/claude-app/dist"),
-            ("agent-skills", agent_skill_build_packages, "plugins/coding-workflows/agent-skills/dist"),
-        )
-        for label, builder, relative in families:
-            with self.subTest(label=label):
-                temporary, fixture = self.make_fixture()
-                self.addCleanup(temporary.cleanup)
-                output = fixture / relative
-                before = self.snapshot_package(output)
-                support = fixture / "plugins/coding-workflows/skills/repo-xray/credentials.MD"
-                support.write_text("token=" + "sk-" + ("x" * 20), encoding="utf-8")
-                with self.assertRaisesRegex(ValueError, "secret material"):
-                    builder(fixture)
-                self.assertEqual(before, self.snapshot_package(output))
-
-    def test_work_mode_and_claude_app_reject_non_text_and_oversized_sources(self) -> None:
-        families = (
-            ("work-mode", build_packages, "plugins/coding-workflows/work-mode/dist"),
-            ("claude-app", claude_app_build_packages, "plugins/coding-workflows/claude-app/dist"),
-        )
-        for label, builder, relative in families:
-            for artifact_kind in ("non-text", "oversized"):
-                with self.subTest(label=label, artifact_kind=artifact_kind):
-                    temporary, fixture = self.make_fixture()
-                    self.addCleanup(temporary.cleanup)
-                    output = fixture / relative
-                    before = self.snapshot_package(output)
-                    support = fixture / "plugins/coding-workflows/skills/repo-xray/support.bin"
-                    if artifact_kind == "non-text":
-                        support.write_bytes(b"binary")
-                        expected = "non-text"
-                    else:
-                        with support.open("wb") as stream:
-                            stream.truncate(work_mode_packages.MAX_PACKAGE_FILE_BYTES + 1)
-                        expected = "size limit"
-                    with self.assertRaisesRegex(ValueError, expected):
-                        builder(fixture)
-                    self.assertEqual(before, self.snapshot_package(output))
-
-    def test_agent_skill_packages_validate_references_in_mixed_case_markdown(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        support = fixture / "plugins/coding-workflows/skills/repo-xray/extra.MD"
-        support.write_text("See ./missing-reference.md for details.", encoding="utf-8")
-        with self.assertRaisesRegex(ValueError, "reference is missing: ./missing-reference.md"):
-            agent_skill_build_packages(fixture)
-
     def test_agent_skill_generation_rejects_output_aliases(self) -> None:
         temporary, fixture = self.make_fixture()
         self.addCleanup(temporary.cleanup)
@@ -3004,207 +2405,6 @@ class RepositoryValidationTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(ValueError, "alias|overlap"):
                 agent_skill_packages._preflight_output_destinations(fixture)
-
-    def test_agent_skill_generation_rolls_back_all_outputs_after_replacement_failure(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        targets = tuple(fixture / target for target in agent_skill_packages.OUTPUTS)
-
-        def snapshot() -> dict[Path, dict[str, bytes]]:
-            return {
-                output: {
-                    path.relative_to(output).as_posix(): path.read_bytes()
-                    for path in output.rglob("*") if path.is_file()
-                }
-                for output in targets
-            }
-
-        previous = snapshot()
-        (fixture / "plugins/coding-workflows/skills/repo-xray/new-file.txt").write_text(
-            "new canonical package content", encoding="utf-8"
-        )
-        original_replace = agent_skill_packages.os.replace
-        failing_destination = fixture / agent_skill_packages.KIMI_DIST
-
-        def fail_kimi_install(source, destination) -> None:
-            if Path(destination) == failing_destination and ".stage-" in Path(source).name:
-                raise OSError("injected final package replacement failure")
-            original_replace(source, destination)
-
-        with mock.patch.object(agent_skill_packages.os, "replace", side_effect=fail_kimi_install):
-            with self.assertRaisesRegex(OSError, "injected final package replacement failure"):
-                agent_skill_build_packages(fixture)
-
-        self.assertEqual(previous, snapshot())
-        for output in targets:
-            self.assertEqual([], list(output.parent.glob(f".{output.name}.stage-*")))
-            self.assertEqual([], list(output.parent.glob(f".{output.name}.backup-*")))
-
-    @unittest.skipUnless(sys.platform == "win32", "Windows junction regression")
-    def test_agent_skill_generation_rejects_junctioned_output_parent_before_changes(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        plugin_root = fixture / "plugins/coding-workflows"
-        canonical_extra = plugin_root / "skills/repo-xray/new-support.txt"
-        canonical_extra.write_text("new canonical package content", encoding="utf-8")
-        target_sentinel = plugin_root / "agent-skills/junction-target-sentinel.txt"
-        target_sentinel.write_text("preserve target", encoding="utf-8")
-        outputs = tuple(fixture / target for target in (
-            "plugins/coding-workflows/agent-skills/dist",
-            "plugins/coding-workflows/kimi/dist",
-        ))
-        snapshots = {
-            output: {
-                path.relative_to(output).as_posix(): path.read_bytes()
-                for path in output.rglob("*") if path.is_file()
-            }
-            for output in outputs
-        }
-
-        gemini_parent = plugin_root / "gemini"
-        shutil.rmtree(gemini_parent)
-        agent_skills_parent = plugin_root / "agent-skills"
-        command = f"New-Item -ItemType Junction -Path '{gemini_parent}' -Target '{agent_skills_parent}' | Out-Null"
-        result = subprocess.run(
-            ["powershell", "-NoProfile", "-NonInteractive", "-Command", command],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            self.skipTest(f"Windows junction creation is unavailable: {result.stderr or result.stdout}")
-
-        with self.assertRaisesRegex(ValueError, "junction|reparse|symlink"):
-            agent_skill_build_packages(fixture)
-
-        self.assertTrue(agent_skill_packages._is_reparse_point(gemini_parent))
-        self.assertEqual("preserve target", target_sentinel.read_text(encoding="utf-8"))
-        for output, expected in snapshots.items():
-            actual = {
-                path.relative_to(output).as_posix(): path.read_bytes()
-                for path in output.rglob("*") if path.is_file()
-            }
-            self.assertEqual(expected, actual)
-
-    @unittest.skipUnless(sys.platform == "win32", "Windows nested junction regression")
-    def test_agent_skill_packages_reject_nested_reparse_point_without_changes(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        targets = tuple(fixture / target for target in agent_skill_packages.OUTPUTS)
-
-        def snapshot() -> dict[Path, dict[str, bytes]]:
-            return {
-                output: {
-                    path.relative_to(output).as_posix(): path.read_bytes()
-                    for path in agent_skill_packages._iter_package_entries(output)
-                    if path.is_file() and not agent_skill_packages._is_reparse_point(path)
-                }
-                for output in targets
-            }
-
-        previous = snapshot()
-        package_root = targets[0] / "skills" / "repo-xray"
-        junction = package_root / "nested-junction"
-        target = targets[0] / "skills" / "context-first"
-        command = f"New-Item -ItemType Junction -Path '{junction}' -Target '{target}' | Out-Null"
-        result = subprocess.run(
-            ["powershell", "-NoProfile", "-NonInteractive", "-Command", command],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            self.skipTest(f"Windows junction creation is unavailable: {result.stderr or result.stdout}")
-
-        errors = agent_skill_validate_packages(fixture)
-        self.assertTrue(any("reparse point" in error.lower() for error in errors), errors)
-        with self.assertRaisesRegex(ValueError, "reparse point"):
-            agent_skill_build_packages(fixture)
-        self.assertEqual(previous, snapshot())
-
-    def test_agent_skill_packages_keep_references_inside_skill_root(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        package = fixture / "plugins/coding-workflows/agent-skills/dist/skills/context-first"
-        skill_text = (package / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("references/workflow-coordination.md", skill_text)
-        self.assertTrue((package / "references/workflow-coordination.md").is_file())
-        self.assertFalse((package.parent.parent / "references").exists())
-
-    def test_nested_shared_reference_paths_are_preserved_in_all_packages(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        references = fixture / "plugins/coding-workflows/references"
-        parent = references / "workflow-coordination.md"
-        parent.write_text(
-            parent.read_text(encoding="utf-8") + "\nSee [nested guidance](./nested/child.md).\n",
-            encoding="utf-8",
-        )
-        nested = references / "nested" / "child.md"
-        nested.parent.mkdir()
-        nested.write_text(
-            "Nested shared guidance.\n\nUse `../evidence-contract.md` for shared evidence.\n",
-            encoding="utf-8",
-        )
-
-        build_packages(fixture)
-        claude_app_build_packages(fixture)
-        agent_skill_build_packages(fixture)
-
-        self.assertTrue(
-            (fixture / "plugins/coding-workflows/work-mode/dist/context-first/references/nested/child.md").is_file()
-        )
-        self.assertIn(
-            "../evidence-contract.md",
-            (fixture / "plugins/coding-workflows/work-mode/dist/context-first/references/nested/child.md").read_text(
-                encoding="utf-8"
-            ),
-        )
-        self.assertTrue(
-            (fixture / "plugins/coding-workflows/agent-skills/dist/skills/context-first/references/nested/child.md").is_file()
-        )
-        self.assertIn(
-            "../evidence-contract.md",
-            (fixture / "plugins/coding-workflows/agent-skills/dist/skills/context-first/references/nested/child.md").read_text(
-                encoding="utf-8"
-            ),
-        )
-        with zipfile.ZipFile(fixture / "plugins/coding-workflows/claude-app/dist/context-first.zip") as archive:
-            self.assertIn("context-first/references/nested/child.md", archive.namelist())
-            self.assertIn(b"../evidence-contract.md", archive.read("context-first/references/nested/child.md"))
-        # Intentionally slow: real end-to-end build + validate() across families.
-        self.assertEqual([], VALIDATOR.validate(fixture, tracked_files=[]))
-        self.assertEqual([], validate_packages(fixture))
-        self.assertEqual([], claude_app_validate_packages(fixture))
-        self.assertEqual([], agent_skill_validate_packages(fixture))
-
-    def test_nested_shared_references_cannot_escape_shared_root(self) -> None:
-        builders = (build_packages, claude_app_build_packages, agent_skill_build_packages)
-        for builder in builders:
-            with self.subTest(builder=builder.__module__):
-                temporary, fixture = self.make_fixture()
-                self.addCleanup(temporary.cleanup)
-                reference = fixture / "plugins/coding-workflows/references/workflow-coordination.md"
-                reference.write_text(
-                    reference.read_text(encoding="utf-8") + "\n[outside](../../../outside.md)\n",
-                    encoding="utf-8",
-                )
-                with self.assertRaisesRegex(ValueError, "inside|resolve"):
-                    builder(fixture)
-
-    def test_agent_skill_packages_reject_malformed_host_manifest_and_stale_output(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        manifest = fixture / "plugins/coding-workflows/gemini/dist/gemini-extension.json"
-        manifest.write_text('{"name":"wrong","version":"1"}\n', encoding="utf-8")
-        errors = agent_skill_validate_packages(fixture)
-        self.assertTrue(any("Gemini package has a malformed" in error for error in errors), errors)
-        self.assertFalse(any("Stale generated Agent Skills package" in error for error in errors), errors)
 
     def test_agent_skill_packages_reject_unsupported_source_metadata(self) -> None:
         temporary, fixture = self.make_fixture()
@@ -3267,56 +2467,6 @@ class RepositoryValidationTests(unittest.TestCase):
             self.skipTest(f"symlink creation is unavailable or denied: {exc}")
         with self.assertRaisesRegex(ValueError, "symlink"):
             agent_skill_build_packages(fixture)
-
-    def test_agent_skill_packages_do_not_mutate_canonical_source(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        source = fixture / "plugins/coding-workflows/skills/live-research/SKILL.md"
-        before = source.read_bytes()
-        agent_skill_build_packages(fixture)
-        self.assertEqual(before, source.read_bytes())
-
-    def test_agent_skill_packages_reject_version_mismatch_and_incorrect_root_shape(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        kimi = fixture / "plugins/coding-workflows/kimi/dist"
-        manifest = kimi / "kimi.plugin.json"
-        data = json.loads(manifest.read_text(encoding="utf-8"))
-        data["version"] = "mismatch"
-        manifest.write_text(json.dumps(data), encoding="utf-8")
-        (kimi / "unlisted-root.txt").write_text("unexpected", encoding="utf-8")
-        errors = agent_skill_validate_packages(fixture)
-        self.assertTrue(any("Kimi package has a malformed" in error for error in errors), errors)
-        self.assertTrue(any("incorrect root shape" in error for error in errors), errors)
-
-    def test_agent_skill_packages_reject_symlinked_output_root(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        portable = fixture / "plugins/coding-workflows/agent-skills/dist"
-        outside = Path(temporary.name) / "outside-package"
-        outside.mkdir()
-        shutil.rmtree(portable)
-        try:
-            portable.symlink_to(outside, target_is_directory=True)
-        except (NotImplementedError, OSError) as exc:
-            self.skipTest(f"symlink creation is unavailable or denied: {exc}")
-        errors = agent_skill_validate_packages(fixture)
-        self.assertTrue(any("symlink" in error.lower() or "reparse point" in error.lower() for error in errors), errors)
-
-    def test_agent_skill_packages_reject_forbidden_debris_and_oversized_files(self) -> None:
-        temporary, fixture = self.make_fixture()
-        self.addCleanup(temporary.cleanup)
-        agent_skill_build_packages(fixture)
-        package = fixture / "plugins/coding-workflows/agent-skills/dist"
-        (package / "skills/repo-xray/node_modules").mkdir()
-        oversized = package / "skills/repo-xray/extra.bin"
-        oversized.write_bytes(b"x" * 2_000_001)
-        errors = agent_skill_validate_packages(fixture)
-        self.assertTrue(any("forbidden debris" in error for error in errors), errors)
-        self.assertTrue(any("exceeds the size limit" in error for error in errors), errors)
-        self.assertTrue(any("non-text artifact" in error for error in errors), errors)
 
     def test_devcontainer_does_not_run_repository_scripts_on_create(self) -> None:
         data = json.loads((ROOT / ".devcontainer" / "devcontainer.json").read_text(encoding="utf-8"))

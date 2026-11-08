@@ -28,6 +28,7 @@ from repository_inventory import (
     resolve_skill_root,
     resolve_within,
     walk_repository,
+    with_path_check_cache,
 )
 from routing_evals import validate_eval_data
 from work_mode_packages import SECRET_MATERIAL, validate_packages
@@ -1660,6 +1661,7 @@ def _tracked_files(root: Path) -> tuple[list[str], str | None]:
     return list(filter(None, tracked)), None
 
 
+@with_path_check_cache
 def validate(
     root: Path = ROOT,
     *,
@@ -1907,9 +1909,10 @@ def validate(
         pass
 
     errors.extend(validate_claude_app_packages(root))
-    errors.extend(
-        validate_agent_skill_packages(root, check_currentness=_package_currentness_enabled(check_generated_packages))
-    )
+    # Structural checks only here: when currentness is enabled, collect_inventory()
+    # below runs the full Agent Skills reproduction comparison, so running it here
+    # too would rebuild every portable, Gemini, and Kimi package a second time.
+    errors.extend(validate_agent_skill_packages(root, check_currentness=False))
     try:
         claude_app_manifest = load_claude_app_manifest(root)
         expected_claude_app_names = set(active_claude_app_skills(root, claude_app_manifest))

@@ -18,6 +18,8 @@ from repository_inventory import (
     parse_skill_frontmatter,
     require_repository_path,
     resolve_within,
+    with_fresh_path_checks,
+    with_path_check_cache,
 )
 
 
@@ -130,12 +132,22 @@ def _path_overlaps(left: Path, right: Path) -> bool:
                 return ancestors
             current = parent
 
-    for left_ancestor in existing_ancestors(left):
-        for right_ancestor in existing_ancestors(right):
+    def file_identities(ancestors: list[Path]) -> list[tuple[Path, tuple[int, int]]]:
+        # os.path.samefile() compares (st_dev, st_ino) of two os.stat() results;
+        # stat each ancestor once instead of once per ancestor pair.
+        identities: list[tuple[Path, tuple[int, int]]] = []
+        for ancestor in ancestors:
             try:
-                if not os.path.samefile(left_ancestor, right_ancestor):
-                    continue
+                metadata = os.stat(ancestor)
             except OSError:
+                continue
+            identities.append((ancestor, (metadata.st_dev, metadata.st_ino)))
+        return identities
+
+    right_identities = file_identities(existing_ancestors(right))
+    for left_ancestor, left_identity in file_identities(existing_ancestors(left)):
+        for right_ancestor, right_identity in right_identities:
+            if left_identity != right_identity:
                 continue
             left_relative = left.relative_to(left_ancestor)
             right_relative = right.relative_to(right_ancestor)
@@ -516,6 +528,7 @@ def _stage_work_mode_packages(root: Path, stage: Path) -> list[Path]:
     return sorted(seen)
 
 
+@with_fresh_path_checks
 def build_packages(root: Path = ROOT, destination: Path | None = None) -> Path:
     manifest = load_manifest(root)
     entries = manifest.get("skills")
@@ -618,6 +631,7 @@ def _validate_package_references(
                 errors.append(f"Work Mode package {package_root.name} reference is missing: {raw_path}")
 
 
+@with_path_check_cache
 def validate_packages(root: Path = ROOT) -> list[str]:
     errors: list[str] = []
     try:

@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import ast
+import contextlib
+import contextvars
+import functools
 import json
 import os
 import re
 import stat
 import tomllib
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterator, TypeVar
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -99,7 +102,64 @@ def load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+# Read-only validation re-checks the same few dozen ancestor directories for
+# every one of roughly a thousand files: each check is an lstat or a full path
+# resolution, which costs 0.1-1 ms on Windows. Within one read-only validation
+# run, path_check_cache() lets those checks reuse two verdicts: "this directory
+# is not a symlink or reparse point" and "this root resolves to X". Files are
+# always re-checked, positive (rejecting) verdicts are never cached, and the
+# cache is discarded when the outermost validation call returns. Package
+# builders never enable it, so writes keep fresh per-check verification.
+_PATH_CHECK_CACHE: contextvars.ContextVar[dict[tuple[str, str], Any] | None] = contextvars.ContextVar(
+    "coding_agents_path_check_cache", default=None
+)
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+
+@contextlib.contextmanager
+def path_check_cache() -> Iterator[None]:
+    """Reuse directory reparse-point verdicts and resolved roots for one validation run."""
+
+    if _PATH_CHECK_CACHE.get() is not None:
+        yield
+        return
+    token = _PATH_CHECK_CACHE.set({})
+    try:
+        yield
+    finally:
+        _PATH_CHECK_CACHE.reset(token)
+
+
+def with_path_check_cache(function: _F) -> _F:
+    """Run a read-only validation entry point inside path_check_cache()."""
+
+    @functools.wraps(function)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        with path_check_cache():
+            return function(*args, **kwargs)
+
+    return wrapper  # type: ignore[return-value]
+
+
+def with_fresh_path_checks(function: _F) -> _F:
+    """Run a package builder with uncached path checks, even inside validation."""
+
+    @functools.wraps(function)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        token = _PATH_CHECK_CACHE.set(None)
+        try:
+            return function(*args, **kwargs)
+        finally:
+            _PATH_CHECK_CACHE.reset(token)
+
+    return wrapper  # type: ignore[return-value]
+
+
 def is_reparse_point(path: Path) -> bool:
+    cache = _PATH_CHECK_CACHE.get()
+    key = ("not-reparse-directory", os.fspath(path))
+    if cache is not None and key in cache:
+        return False
     try:
         metadata = path.lstat()
     except FileNotFoundError:
@@ -107,14 +167,30 @@ def is_reparse_point(path: Path) -> bool:
     if stat.S_ISLNK(metadata.st_mode):
         return True
     reparse_attribute = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
-    return bool(getattr(metadata, "st_file_attributes", 0) & reparse_attribute)
+    if getattr(metadata, "st_file_attributes", 0) & reparse_attribute:
+        return True
+    if cache is not None and stat.S_ISDIR(metadata.st_mode):
+        cache[key] = True
+    return False
+
+
+def _resolved_root(root: Path) -> Path:
+    cache = _PATH_CHECK_CACHE.get()
+    if cache is None:
+        return root.resolve()
+    key = ("resolved-root", os.fspath(root))
+    resolved = cache.get(key)
+    if resolved is None:
+        resolved = root.resolve()
+        cache[key] = resolved
+    return resolved
 
 
 def resolve_within(path: Path, root: Path, *, label: str) -> Path:
     """Resolve path and convert escapes or resolution failures into ValueError."""
 
     try:
-        root_resolved = root.resolve()
+        root_resolved = _resolved_root(root)
         try:
             # Strict resolution reports symlink loops on every supported
             # Python: 3.11 raises RuntimeError, while 3.13+ non-strict
@@ -233,15 +309,20 @@ def _require_current_generated_packages(root: Path) -> None:
     from work_mode_packages import validate_packages as validate_work_packages
 
     failures: list[str] = []
+    # Agent Skills validate_packages() already includes the full reproduction
+    # comparison, and its packages_are_current() only re-runs validate_packages();
+    # calling both would rebuild every portable, Gemini, and Kimi package twice.
     package_families = (
         ("Work Mode", validate_work_packages, work_packages_are_current),
         ("Claude app", validate_claude_packages, claude_packages_are_current),
-        ("Agent Skills", validate_agent_packages, agent_packages_are_current),
+        ("Agent Skills", validate_agent_packages, None),
     )
     for label, validate, is_current in package_families:
         errors = validate(root)
         if errors:
             failures.append(f"{label}: {'; '.join(errors)}")
+            continue
+        if is_current is None:
             continue
         details: dict[str, str] = {}
         if is_current(root, details=details):
@@ -269,6 +350,7 @@ def _workflow_name(path: Path) -> str:
     return path.stem
 
 
+@with_path_check_cache
 def collect_inventory(
     root: Path = ROOT,
     *,

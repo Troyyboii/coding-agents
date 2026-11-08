@@ -17,6 +17,8 @@ from repository_inventory import (
     require_repository_path,
     resolve_within,
     validate_excluded_skill_names,
+    with_fresh_path_checks,
+    with_path_check_cache,
 )
 from work_mode_packages import (
     MAX_PACKAGE_BYTES,
@@ -160,6 +162,7 @@ def _stage_claude_packages(root: Path, stage: Path, names: list[str]) -> None:
         _remove_stage(package)
 
 
+@with_fresh_path_checks
 def build_packages(root: Path = ROOT, destination: Path | None = None) -> Path:
     manifest = load_manifest(root)
     if manifest.get("version") != 1 or manifest.get("canonical_source") != CANONICAL_SOURCE:
@@ -414,6 +417,7 @@ def _validate_zip_package(zip_path: Path, expected_name: str, errors: list[str])
                 errors.append(f"Claude app package {zip_path.name} reference is missing: {raw_path}")
 
 
+@with_path_check_cache
 def validate_packages(root: Path = ROOT) -> list[str]:
     errors: list[str] = []
     try:

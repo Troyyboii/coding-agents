@@ -100,6 +100,10 @@ python -m unittest discover -s tests -v
 git diff --check HEAD
 ```
 
+For a faster local test run, `python scripts\run-tests.py` runs the same discovered
+tests split across parallel worker processes (`--jobs N` to override the CPU count).
+CI keeps the sequential `unittest discover` command above.
+
 The validator checks active component contracts, the audit ledger, Cursor's
 repository-owned environment boundary, and the validation workflow's semantic
 shape. The inventory check proves the generated capability list matches source.
